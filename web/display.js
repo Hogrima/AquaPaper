@@ -1,3 +1,5 @@
+import { translate } from './i18n.js';
+
 export function monitorMap(monitors) {
   if (!monitors.length) return { aspect: 16 / 9, boxes: [] };
   const left = Math.min(...monitors.map(m => m.x)), top = Math.min(...monitors.map(m => m.y));
@@ -15,7 +17,7 @@ export function renderResolution(width, height, dpr, quality, monitorCount = 1, 
   return { width: Math.max(1, Math.floor(width * scale)), height: Math.max(1, Math.floor(height * scale)), scale };
 }
 
-export function displayControls(host) {
+export function displayControls(host, getLanguage = () => document.documentElement.lang) {
   const $ = id => document.getElementById(id);
   let state = { mode: 'single', monitors: [], effectiveMonitorId: null, monitorId: null, busy: false, active: false };
   const request = options => { host?.postMessage({ type: 'display', options }); };
@@ -29,33 +31,37 @@ export function displayControls(host) {
     const button = e.target.closest('button[data-id]'); if (!button || state.busy || state.mode !== 'single') return;
     request({ mode: 'single', monitorId: button.dataset.id });
   });
-  return message => {
-    state = message;
-    $('monitor-count').textContent = `${state.monitors.length}대 연결됨`;
+  const render = message => {
+    if (message) state = message;
+    const language = getLanguage();
+    const t = (key, variables = {}) => translate(language, key, variables);
+    $('monitor-count').textContent = t('monitorsConnected', { count: state.monitors.length });
     for (const b of $('display-mode').querySelectorAll('button')) {
       b.classList.toggle('selected', b.dataset.value === state.mode); b.setAttribute('aria-pressed', String(b.dataset.value === state.mode)); b.disabled = state.busy;
     }
     const missing = state.mode === 'single' && state.monitorId !== state.effectiveMonitorId;
-    $('display-description').textContent = missing ? '선택했던 화면이 분리되어 주 모니터에 표시합니다. 다시 연결하면 자동으로 돌아갑니다.' : {
-      single: '선택한 모니터에만 수족관을 표시합니다.',
-      span: 'Windows 화면 배치대로 연결합니다. 물고기가 모니터 경계를 넘어 헤엄칩니다.',
-      separate: '각 모니터에 독립된 수족관을 표시합니다. 물고기 수는 화면마다 적용됩니다.',
-    }[state.mode];
+    $('display-description').textContent = missing ? t('displayFallback') : t({
+      single: 'displaySingleDescription',
+      span: 'displaySpanDescription',
+      separate: 'displaySeparateDescription',
+    }[state.mode]);
     $('monitor-select-row').hidden = state.mode !== 'single';
     const select = $('monitor-select'); select.replaceChildren(); select.disabled = state.busy;
-    for (const m of state.monitors) { const option = document.createElement('option'); option.value = m.id; option.textContent = `모니터 ${m.number} · ${m.width} × ${m.height}${m.primary ? ' (주)' : ''}`; select.append(option); }
+    for (const m of state.monitors) { const option = document.createElement('option'); option.value = m.id; option.textContent = t('monitorName', { number: m.number, width: m.width, height: m.height, primary: m.primary ? t('primaryParenthetical') : '' }); select.append(option); }
     select.value = state.effectiveMonitorId;
     const map = monitorMap(state.monitors), stage = $('monitor-map'); stage.replaceChildren();
     stage.style.aspectRatio = map.aspect; stage.classList.toggle('spanned', state.mode === 'span');
     for (const m of map.boxes) {
       const box = document.createElement('button'); box.className = 'monitor-box'; box.dataset.id = m.id;
-      box.textContent = m.number; box.title = `모니터 ${m.number} · ${m.width} × ${m.height}${m.primary ? ' · 주 모니터' : ''}`;
+      box.textContent = m.number; box.title = t('monitorName', { number: m.number, width: m.width, height: m.height, primary: m.primary ? t('primaryInline') : '' });
       box.setAttribute('aria-label', box.title); box.setAttribute('aria-pressed', String(state.mode !== 'single' || m.id === state.effectiveMonitorId));
       box.disabled = state.busy || state.mode !== 'single';
       box.style.left = `${m.left}%`; box.style.top = `${m.top}%`; box.style.width = `${m.mapWidth}%`; box.style.height = `${m.mapHeight}%`;
       stage.append(box);
     }
-    $('display-status').textContent = state.busy ? '화면을 연결하는 중…' : state.active ? '바탕화면에 적용 중 · 변경하면 바로 반영됩니다' : '아래 ‘바탕화면에 적용’을 누르면 시작합니다';
+    $('display-status').textContent = state.busy ? t('displayBusy') : state.active ? t('displayActive') : t('displayInactive');
     $('apply').disabled = state.busy;
   };
+  render.refreshLanguage = () => render();
+  return render;
 }

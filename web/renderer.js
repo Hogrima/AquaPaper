@@ -1,4 +1,6 @@
 import { renderResolution } from './display.js';
+import { createProgram as program } from './gl.js';
+import { TetraRenderer } from './fish3d.js';
 const BACKGROUND_VERTEX = `#version 300 es
 precision highp float;
 in vec2 a_position;
@@ -128,20 +130,10 @@ void main(){vec2 p=gl_PointCoord*2.-1.;float d=length(p);float a=(1.-smoothstep(
  if(v_bubble>.5){a=(1.-smoothstep(.68,1.,d))*smoothstep(.40,.75,d)*.65;a+=exp(-length(p-vec2(-.27,-.36))*15.)*.8;}
  outColor=vec4(.79,.90,.72,a*v_opacity);}`;
 
-function shader(gl, type, source) {
-  const s = gl.createShader(type); gl.shaderSource(s, source); gl.compileShader(s);
-  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { const error = gl.getShaderInfoLog(s); gl.deleteShader(s); throw new Error(error); } return s;
-}
-function program(gl, vs, fs) {
-  const p = gl.createProgram(), v = shader(gl, gl.VERTEX_SHADER, vs), f = shader(gl, gl.FRAGMENT_SHADER, fs);
-  gl.attachShader(p, v); gl.attachShader(p, f); gl.linkProgram(p); gl.deleteShader(v); gl.deleteShader(f);
-  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p)); return p;
-}
-
 export class AquariumRenderer {
   constructor(canvas, random = Math.random) {
     this.canvas = canvas;
-    const gl = this.gl = canvas.getContext('webgl2', { alpha: false, antialias: false, depth: false, stencil: false, powerPreference: 'low-power', preserveDrawingBuffer: false });
+    const gl = this.gl = canvas.getContext('webgl2', { alpha: false, antialias: false, depth: true, stencil: false, powerPreference: 'low-power', preserveDrawingBuffer: false });
     if (!gl) throw new Error('WebGL 2를 사용할 수 없습니다. 그래픽 드라이버와 Microsoft Edge WebView2를 업데이트해 주세요.');
     this.bgProgram = program(gl, BACKGROUND_VERTEX, BACKGROUND_FRAGMENT);
     this.fishProgram = program(gl, FISH_VERTEX, FISH_FRAGMENT);
@@ -164,6 +156,7 @@ export class AquariumRenderer {
     gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
     gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([17,42,30,255]));
     this.imageSize=[16,9];this.renderScale=1;
+    this.tetra = new TetraRenderer(gl);
   }
   createQuad(p) { const gl=this.gl,vao=gl.createVertexArray();gl.bindVertexArray(vao);gl.bindBuffer(gl.ARRAY_BUFFER,this.quad);const a=gl.getAttribLocation(p,'a_position');gl.enableVertexAttribArray(a);gl.vertexAttribPointer(a,2,gl.FLOAT,false,0,0);return vao; }
   uniform(p,name) {let map=this.uniforms.get(p);if(!map){map=new Map();this.uniforms.set(p,map);}if(!map.has(name))map.set(name,this.gl.getUniformLocation(p,name));return map.get(name);}
@@ -177,15 +170,19 @@ export class AquariumRenderer {
   }
   render(sim,settings) {
     const gl=this.gl,t=sim.time,light={day:0,dusk:1,night:2}[settings.lighting],w=this.canvas.width,h=this.canvas.height;
+    gl.disable(gl.DEPTH_TEST);gl.depthMask(true);gl.clear(gl.DEPTH_BUFFER_BIT);
     gl.disable(gl.BLEND);gl.useProgram(this.bgProgram);gl.bindVertexArray(this.bgVao);gl.activeTexture(gl.TEXTURE0);gl.bindTexture(gl.TEXTURE_2D,this.texture);
     gl.uniform1i(this.uniform(this.bgProgram,'u_image'),0);gl.uniform2f(this.uniform(this.bgProgram,'u_resolution'),w,h);gl.uniform2f(this.uniform(this.bgProgram,'u_imageSize'),...this.imageSize);
     gl.uniform1f(this.uniform(this.bgProgram,'u_time'),t);gl.uniform1f(this.uniform(this.bgProgram,'u_lighting'),light);gl.drawArrays(gl.TRIANGLES,0,6);
     gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);
+    if(settings.fishMode==='tetra3d') this.tetra.draw(sim,light);
+    else {
     gl.useProgram(this.fishProgram);gl.bindVertexArray(this.fishVao);gl.bindBuffer(gl.ARRAY_BUFFER,this.fishBuffer);
     let i=0;for(const f of sim.fish){this.fishData[i++]=f.x;this.fishData[i++]=f.y;this.fishData[i++]=f.size*(.72+f.depth*.28);this.fishData[i++]=f.angle;this.fishData[i++]=f.phase;this.fishData[i++]=f.depth;this.fishData[i++]=f.panic;this.fishData[i++]=f.school;}
     gl.bufferSubData(gl.ARRAY_BUFFER,0,this.fishData.subarray(0,i));gl.uniform1f(this.uniform(this.fishProgram,'u_aspect'),sim.aspect);gl.uniform1f(this.uniform(this.fishProgram,'u_lighting'),light);gl.drawArraysInstanced(gl.TRIANGLES,0,6,sim.fish.length);
+    }
     if(settings.particles){gl.useProgram(this.particleProgram);gl.bindVertexArray(this.particleVao);gl.uniform1f(this.uniform(this.particleProgram,'u_time'),t);gl.uniform1f(this.uniform(this.particleProgram,'u_pixelRatio'),this.renderScale);gl.drawArrays(gl.POINTS,0,settings.quality==='eco'?100:240);}
     gl.bindVertexArray(null);
   }
-  dispose(){const gl=this.gl;for(const p of [this.bgProgram,this.fishProgram,this.particleProgram])gl.deleteProgram(p);for(const b of [this.quad,this.fishBuffer,this.particleBuffer])gl.deleteBuffer(b);for(const v of [this.bgVao,this.fishVao,this.particleVao])gl.deleteVertexArray(v);gl.deleteTexture(this.texture);}
+  dispose(){this.tetra.dispose();const gl=this.gl;for(const p of [this.bgProgram,this.fishProgram,this.particleProgram])gl.deleteProgram(p);for(const b of [this.quad,this.fishBuffer,this.particleBuffer])gl.deleteBuffer(b);for(const v of [this.bgVao,this.fishVao,this.particleVao])gl.deleteVertexArray(v);gl.deleteTexture(this.texture);}
 }

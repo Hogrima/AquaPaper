@@ -5,8 +5,8 @@
 1. Download **AquaPaper-Windows-x64.zip** from the [latest release](https://github.com/Hogrima/AquaPaper/releases/latest).
 2. Right-click the ZIP and choose **Extract All**.
 3. Double-click **Install.cmd** in the extracted `AquaPaper` folder.
-4. When the app opens, select **환경 설정 (Settings) → 모니터 배치 (Monitor layout)**.
-5. Click **바탕화면에 적용 (Apply wallpaper)**.
+4. When the app opens, select **환경 설정 (Settings) → 언어 (Language)** and choose Korean or English.
+5. Select **모니터 배치 (Monitor layout)**, then click **바탕화면에 적용 (Apply wallpaper)**.
 
 No administrator privileges or separate .NET installation are required. If Microsoft Edge WebView2 Runtime is missing, install the [official Evergreen Runtime](https://developer.microsoft.com/microsoft-edge/webview2/) first. Extract the entire package, not only the EXE. GitHub's separate **Source code** downloads are not ready-to-run packages.
 
@@ -15,6 +15,8 @@ No administrator privileges or separate .NET installation are required. If Micro
 | A single display | **한 화면만** → choose the monitor number |
 | One aquarium spanning every display | **모두 이어서** |
 | An independent aquarium on each display | **화면마다 따로** |
+
+The default fish appearance is **3D neon tetra**. You can switch to **Classic** in Settings. Language, fish appearance and other preferences are saved automatically.
 
 The app installs to `%LOCALAPPDATA%\Programs\AquaPaper` and creates Desktop and Start menu shortcuts. For portable use, skip installation and run `AquaPaper.exe` from the extracted folder.
 

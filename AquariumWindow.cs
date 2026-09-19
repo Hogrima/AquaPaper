@@ -26,7 +26,7 @@ internal sealed class AquariumWindow : Form
     internal AquariumWindow(AquariumApp app, bool wallpaper, WallpaperTarget? target = null)
     {
         this.app = app; IsWallpaper = wallpaper; Target = target;
-        Text = "AquaPaper · 살아 있는 수족관";
+        Text = app.WindowTitle;
         BackColor = Color.FromArgb(8, 26, 20);
         AutoScaleMode = wallpaper ? AutoScaleMode.None : AutoScaleMode.Dpi;
         if (wallpaper) { FormBorderStyle = FormBorderStyle.None; ShowInTaskbar = false; StartPosition = FormStartPosition.Manual; }
@@ -45,7 +45,7 @@ internal sealed class AquariumWindow : Form
     {
         try {
             var options = new CoreWebView2EnvironmentOptions("--disable-background-timer-throttling --disable-renderer-backgrounding --autoplay-policy=no-user-gesture-required");
-            var env = await CoreWebView2Environment.CreateAsync(null, Path.Combine(AppLog.DataPath, "WebView2"), options);
+            var env = await CoreWebView2Environment.CreateAsync(null, app.WebViewDataPath, options);
             await web.EnsureCoreWebView2Async(env);
             var core = web.CoreWebView2;
             core.SetVirtualHostNameToFolderMapping("aquapaper.local", Path.Combine(AppContext.BaseDirectory, "web"), CoreWebView2HostResourceAccessKind.DenyCors);

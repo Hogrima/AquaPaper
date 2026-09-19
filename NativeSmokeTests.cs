@@ -29,6 +29,37 @@ internal sealed partial class AquariumApp
         try {
             await Task.Delay(4000);
             var before = JsonDocument.Parse(await window.Diagnostics()).RootElement.Clone();
+            object? modeSwitch = null;
+            var qualityCases = new List<JsonElement>();
+            if (settings.GetProperty("fishMode").GetString() == "tetra3d") {
+                if (!before.GetProperty("tetra").GetProperty("ready").GetBoolean() || before.GetProperty("settings").GetProperty("fishMode").GetString() != "tetra3d") throw new InvalidOperationException("3D mesh did not initialize");
+                await window.CaptureFrame(Path.Combine(folder, "tetra-scene.png"));
+                var tetraSettings = settings.Deserialize<Dictionary<string, JsonElement>>()!;
+                var legacySettings = new Dictionary<string, JsonElement>(tetraSettings);
+                legacySettings["fishMode"] = JsonSerializer.SerializeToElement("classic");
+                window.Post(new { type = "settings", settings = legacySettings }); await Task.Delay(350);
+                var classic = JsonDocument.Parse(await window.Diagnostics()).RootElement.Clone();
+                if (classic.GetProperty("settings").GetProperty("fishMode").GetString() != "classic") throw new InvalidOperationException("Classic mode could not be restored");
+                foreach (var quality in new[] { "high", "eco" }) {
+                    var stress = new Dictionary<string, JsonElement>(tetraSettings);
+                    stress["count"] = JsonSerializer.SerializeToElement(160);
+                    stress["quality"] = JsonSerializer.SerializeToElement(quality);
+                    window.Post(new { type = "settings", settings = stress }); await Task.Delay(2200);
+                    qualityCases.Add(JsonDocument.Parse(await window.Diagnostics()).RootElement.Clone());
+                }
+                window.Post(new { type = "settings", settings = tetraSettings }); await Task.Delay(600);
+                var back = JsonDocument.Parse(await window.Diagnostics()).RootElement.Clone();
+                var f = back.GetProperty("tetra").GetProperty("sample")[0];
+                double aspect = back.GetProperty("width").GetDouble() / back.GetProperty("height").GetDouble();
+                double w = 1 - f.GetProperty("z").GetDouble() / 2.7;
+                double x = (.5 * aspect + (f.GetProperty("x").GetDouble() - .5 * aspect) / w) / aspect;
+                double y = .5 + (f.GetProperty("y").GetDouble() - .5) / w;
+                window.Post(new { type = "cursor", x, y, active = true, speed = 2 }); await Task.Delay(120);
+                var escaped = JsonDocument.Parse(await window.Diagnostics()).RootElement.Clone();
+                window.Post(new { type = "cursor", x, y, active = false, speed = 0 });
+                if (escaped.GetProperty("tetra").GetProperty("sample")[0].GetProperty("panic").GetDouble() < .1) throw new InvalidOperationException("3D projected cursor did not trigger escape");
+                modeSwitch = new { classic, back, escaped };
+            }
             window.OpenSettings(); await Task.Delay(200); await window.CaptureFrame(Path.Combine(folder, "monitor-settings.png"));
             SetPaused(true); await Task.Delay(200); var pausedAt = JsonDocument.Parse(await window.Diagnostics()).RootElement.Clone();
             await Task.Delay(500); var pausedLater = JsonDocument.Parse(await window.Diagnostics()).RootElement.Clone(); SetPaused(false);
@@ -65,7 +96,7 @@ internal sealed partial class AquariumApp
             StopWallpaper(); await Task.Delay(500);
             bool cleanedUp = wallpapers.Count == 0 && handles.All(h => !NativeMethods.IsWindow(h));
             var restored = JsonDocument.Parse(await window.Diagnostics()).RootElement.Clone();
-            var report = new { preview = before, pausedAt, pausedLater, desktopAttached = attached, wallpaper = wallpaperReport, restored, cleanedUp,
+            var report = new { preview = before, pausedAt, pausedLater, desktopAttached = attached, wallpaper = wallpaperReport, restored, cleanedUp, modeSwitch, qualityCases,
                 monitors = Monitors().Select(m => new { id = m.Id, m.Number, m.Primary, bounds = Rect(m.Bounds) }), cases };
             File.WriteAllText(Path.Combine(folder, "smoke-test.json"), JsonSerializer.Serialize(report, JsonOptions));
             AppLog.Write("Smoke test complete.");

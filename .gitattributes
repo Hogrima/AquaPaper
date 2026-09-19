@@ -10,3 +10,6 @@
 *.png binary
 *.ico binary
 *.zip binary
+*.blend binary
+*.glb binary
+*.bin binary

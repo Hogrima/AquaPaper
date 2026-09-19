@@ -2,7 +2,7 @@
 
 [한국어](README.ko.md) · [English](README.en.md) · [Download / Releases](https://github.com/Hogrima/AquaPaper/releases/latest)
 
-A calm, interactive aquarium wallpaper for Windows. Schools of silver-and-red fish react to your mouse, scatter when you approach, and gradually regroup. A forest-green aquascape, driftwood, underwater plants, moving light and floating particles create the scene.
+A calm, interactive aquarium wallpaper for Windows. Schools of silver-and-red neon tetras react to your mouse, scatter when you approach, and gradually regroup. A forest-green aquascape, driftwood, underwater plants, moving light and floating particles create the scene. The default fish appearance is the Blender-based **3D neon tetra**; the original mode remains available.
 
 ![AquaPaper preview](docs/screenshots/aquarium.png)
 
@@ -11,11 +11,11 @@ A calm, interactive aquarium wallpaper for Windows. Schools of silver-and-red fi
 1. Download **AquaPaper-Windows-x64.zip** from the [latest release](https://github.com/Hogrima/AquaPaper/releases/latest). The separate **Source code** ZIP is for development.
 2. **Extract all** files.
 3. Double-click **Install.cmd**. The installer displays Korean and English instructions, copies the app to your user folder, and creates Desktop and Start menu shortcuts.
-4. Open **환경 설정 (Settings) → 모니터 배치 (Monitor layout)**, choose a mode, then click **바탕화면에 적용 (Apply wallpaper)**.
+4. Open **환경 설정 (Settings) → 언어 (Language)** to choose Korean or English, then choose **모니터 배치 (Monitor layout)** and click **바탕화면에 적용 (Apply wallpaper)**.
 
 The installation folder is `%LOCALAPPDATA%\Programs\AquaPaper`. Administrator access and a separate .NET installation are not required; the release bundles .NET. **Microsoft Edge WebView2 Runtime** is required. If missing, install the Evergreen Runtime from [Microsoft](https://developer.microsoft.com/microsoft-edge/webview2/). Tested on Windows 11 x64.
 
-For portable use, simply run **AquaPaper.exe** from the extracted folder. Keep the entire folder together, including `web` and the DLLs. No account or API key is needed. The application UI is currently Korean; this guide includes English translations of its controls.
+For portable use, simply run **AquaPaper.exe** from the extracted folder. Keep the entire folder together, including `web` and the DLLs. No account or API key is needed. Choose Korean or English in Settings; the choice is saved with the rest of your preferences.
 
 To update, select **AquaPaper 종료 (Exit)** from the tray menu, extract the new release, and run its `Install.cmd`. To remove an installed copy, run **Uninstall.cmd** in the installation folder. Preferences are preserved. Installation does not register automatic startup or change your saved Windows background image.
 
@@ -54,7 +54,7 @@ Separate mode pauses only a display covered by a foreground fullscreen applicati
 
 Preview controls fade after 8.5 seconds of inactivity and reappear on input. Wallpaper mode hides the UI. Desktop icons retain normal mouse behavior; the wallpaper reads cursor position separately and does not react through other applications.
 
-Settings include 12–160 fish (72 by default), natural/dusk/moonlight lighting, swimming speed, cursor interaction and particles. Quality options target:
+Settings include Korean/English language selection, 3D neon tetra or classic fish appearance (3D by default), 12–160 fish (72 by default), natural/dusk/moonlight lighting, swimming speed, cursor interaction and particles. Changes are saved automatically to `%LOCALAPPDATA%\AquaPaper\settings.json`. Quality options target:
 
 | Setting | Single-display resolution cap | Frame limit |
 | --- | --- | --- |
@@ -79,9 +79,9 @@ Content is loaded locally. No external content server, account, API key or remot
 
 ## Implementation
 
-The native host uses **C# / .NET 10 / Windows Forms / WebView2**. Rendering uses **WebGL 2 and GLSL**. This is a **2.5D scene**: a generated photographic background with animated distortion, lighting, procedural fish and particles. It is not a fully modeled 3D tank or a looping video.
+The native host uses **C# / .NET 10 / Windows Forms / WebView2**. Rendering uses **WebGL 2 and GLSL**. Scenery uses a **2.5D background** with animated distortion, lighting and particles. The default fish use an original **Blender 3D mesh**, while the original procedural shader remains selectable. This is not a fully modeled 3D tank or a looping video.
 
-Fish behavior computes cohesion, alignment, separation, wandering, boundary avoidance and cursor escape each frame. Instanced rendering draws the fish together. Neighbor simulation is O(n²), bounded to 160 fish per aquarium. Rendering uses up to three draw calls per view.
+Fish behavior computes cohesion, alignment, separation, wandering, boundary avoidance and cursor escape each frame. Instanced rendering draws the fish together. Neighbor simulation is O(n²), bounded to 160 fish per aquarium. Rendering uses up to three draw calls per view in the original mode and four in 3D mode, which separates opaque bodies from translucent fins.
 
 The wallpaper host attaches to Windows `WorkerW` / `Progman`, including the raised desktop path used by recent Windows 11 releases. This shell integration can be affected by Windows updates or other wallpaper applications. On failure, the preview remains available. Avoid using another dynamic wallpaper application on the same displays simultaneously.
 
@@ -93,7 +93,7 @@ The wallpaper host attaches to Windows `WorkerW` / `Progman`, including the rais
 | `AquariumWindow.cs` | WebView2 host and native messaging |
 | `web/simulation.js` | Fish behavior |
 | `web/renderer.js` | GPU renderer and shaders |
-| `web/app.js`, `web/display.js` | Controls, display diagram and frame budgeting |
+| `web/app.js`, `web/display.js`, `web/i18n.js` | Controls, display diagram, language selection and frame budgeting |
 | `installer/Install.ps1` | Per-user installation, update and removal |
 
 ## Build and test

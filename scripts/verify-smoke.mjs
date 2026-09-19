@@ -1,11 +1,19 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 const report = JSON.parse(await readFile(process.argv[2] || new URL('../artifacts/smoke-test.json', import.meta.url), 'utf8'));
+const is3D = report.preview.settings.fishMode === 'tetra3d';
+function verify3D(d, label) {
+  assert.equal(d.settings.fishMode, 'tetra3d', `${label}: 3D mode fell back unexpectedly`);
+  assert.ok(d.tetra.ready && !d.tetra.error && d.tetra.vertices > 1000, `${label}: missing Blender mesh`);
+  assert.ok(d.tetra.depthRange[1] - d.tetra.depthRange[0] > .01, `${label}: fish have no depth distribution`);
+  for (const f of d.tetra.sample) assert.ok(Object.values(f).every(Number.isFinite), `${label}: invalid 3D pose`);
+}
 for (const key of ['preview', 'pausedAt', 'pausedLater', 'wallpaper', 'restored']) {
   assert.ok(report[key]?.ready, `${key} did not initialize`);
   assert.deepEqual(report[key].errors, [], `${key} reported JavaScript errors`);
   assert.equal(report[key].webglError, 0, `${key} reported a WebGL error`);
   assert.ok(report[key].fish >= 12 && report[key].fish <= 160);
+  if (is3D) verify3D(report[key], key);
 }
 assert.ok(report.desktopAttached, 'Wallpaper did not attach to the native desktop parent');
 assert.equal(report.pausedAt.time, report.pausedLater.time, 'Simulation continued while paused');
@@ -16,6 +24,25 @@ for (const key of ['preview', 'wallpaper']) {
 }
 console.log(`Native integration passed: ${report.preview.fps} FPS preview / ${report.wallpaper.fps} FPS wallpaper, desktop attach/detach, pause/resume, zero WebGL errors.`);
 assert.ok(report.cleanedUp, 'Wallpaper windows leaked after stop');
+if (is3D) {
+  assert.equal(report.modeSwitch.classic.settings.fishMode, 'classic');
+  assert.equal(report.modeSwitch.classic.webglError, 0);
+  assert.deepEqual(report.modeSwitch.classic.errors, []);
+  verify3D(report.modeSwitch.back, 'switch back');
+  assert.ok(report.modeSwitch.escaped.tetra.sample[0].panic > .1, 'Projected cursor did not start 3D escape');
+  if (report.qualityCases?.length) {
+    assert.equal(report.qualityCases.length, 2);
+    for (const d of report.qualityCases) {
+      verify3D(d, d.settings.quality);
+      assert.equal(d.fish, 160);
+      assert.equal(d.webglError, 0);
+      assert.deepEqual(d.errors, []);
+      assert.ok(d.fps > 0 && d.fps <= (d.settings.quality === 'eco' ? 31 : 61));
+    }
+    assert.ok(report.qualityCases[0].tetra.vertices > report.qualityCases[1].tetra.vertices * 2, 'LOD did not reduce mesh complexity');
+  }
+  console.log('3D: Blender mesh, depth, classic/3D switching and native projected cursor escape verified.');
+}
 for (const c of report.cases || []) {
   const expected = c.mode === 'separate' ? report.monitors.length : 1;
   assert.equal(c.views.length, expected, `${c.mode}: wrong window count`);
@@ -25,6 +52,7 @@ for (const c of report.cases || []) {
     assert.ok(v.diagnostics.ready, `${c.mode}: renderer is not ready`);
     assert.equal(v.diagnostics.webglError, 0);
     assert.deepEqual(v.diagnostics.errors, []);
+    if (is3D) verify3D(v.diagnostics, c.mode);
     assert.ok(v.diagnostics.fps > 0 && v.diagnostics.fps <= 61, `${c.mode}: unexpected frame rate`);
     const activeSamples = v.cursorSamples.filter(s => s.active);
     assert.equal(activeSamples.length, c.mode === 'span' ? report.monitors.length : 1, `${c.mode}: incorrect cursor routing`);

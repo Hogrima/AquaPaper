@@ -8,7 +8,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>app.ico</ApplicationIcon>
     <AssemblyName>AquaPaper</AssemblyName>
-    <Version>1.1.0</Version>
+    <Version>1.2.0</Version>
     <Description>커서에 반응하는 살아 있는 수족관 바탕화면</Description>
     <DefaultItemExcludes>$(DefaultItemExcludes);dist/**;tests/**;artifacts/**</DefaultItemExcludes>
   </PropertyGroup>

@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "generator": "Blender 5.2.2 LTS",
+  "stride": 11,
+  "opaqueVertices": 21732,
+  "finVertices": 7602,
+  "length": 2.0,
+  "coordinates": "+X head, +Y dorsal, +Z lateral",
+  "binary": "neon-tetra.mesh.bin",
+  "species": "Paracheirodon innesi",
+  "originalAsset": true,
+  "lod": {
+    "opaqueVertices": 7170,
+    "finVertices": 4182,
+    "binary": "neon-tetra.lod.bin"
+  }
+}

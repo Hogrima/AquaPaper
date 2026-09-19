@@ -1,4 +1,4 @@
-export const DEFAULTS = Object.freeze({ count: 72, activity: 65, lighting: 'day', interaction: true, particles: true, quality: 'balanced' });
+export const DEFAULTS = Object.freeze({ count: 72, activity: 65, lighting: 'day', interaction: true, particles: true, quality: 'balanced', fishMode: 'tetra3d', language: 'ko' });
 export function normalizeSettings(value = {}) {
   if (!value || typeof value !== 'object') value = {};
   const number = (v, fallback, lo, hi) => typeof v === 'number' && Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : fallback;
@@ -9,6 +9,8 @@ export function normalizeSettings(value = {}) {
     interaction: typeof value.interaction === 'boolean' ? value.interaction : true,
     particles: typeof value.particles === 'boolean' ? value.particles : true,
     quality: ['eco', 'balanced', 'high'].includes(value.quality) ? value.quality : 'balanced',
+    fishMode: ['classic', 'tetra3d'].includes(value.fishMode) ? value.fishMode : 'tetra3d',
+    language: ['ko', 'en'].includes(value.language) ? value.language : 'ko',
   };
 }
 export function seededRandom(seed = 51737) {

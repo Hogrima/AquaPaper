@@ -48,7 +48,7 @@ test('population changes preserve existing fish, and corrupted settings recover 
   const sim = make(); const original = sim.fish[0]; sim.setCount(160); assert.equal(sim.fish.length, 160); assert.equal(sim.fish[0], original);
   sim.setCount(12); assert.equal(sim.fish.length, 12); assert.equal(sim.fish[0], original);
   const fixed = normalizeSettings({ count: Infinity, activity: -10, lighting: 'invalid', quality: 'ultra', interaction: 'false' });
-  assert.equal(fixed.count, 72); assert.equal(fixed.activity, 30); assert.equal(fixed.lighting, 'day'); assert.equal(fixed.quality, 'balanced'); assert.equal(fixed.interaction, true);
+  assert.equal(fixed.count, 72); assert.equal(fixed.activity, 30); assert.equal(fixed.lighting, 'day'); assert.equal(fixed.quality, 'balanced'); assert.equal(fixed.interaction, true); assert.equal(fixed.fishMode, 'tetra3d'); assert.equal(fixed.language, 'ko');
   assert.deepEqual(normalizeSettings(null), DEFAULTS);
 });
 
