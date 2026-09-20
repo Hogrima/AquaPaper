@@ -3,6 +3,10 @@ export const SUPPORTED_LANGUAGES = ['ko', 'en'];
 
 const MESSAGES = {
   ko: {
+    parallax: '천천히 움직이는 시점',
+    parallaxDescription: '작은 원을 따라 움직이며 배경의 깊이를 느껴 보세요',
+    waterSurface: '일렁이는 수면',
+    waterSurfaceDescription: '물결에 따라 반사와 빛이 부드럽게 변해요',
     plecoName: "비파 · 플레코",
     plecoCountLabel: "플레코 수 (최대 8마리)",
     plecoHelp: "바닥 생활 어종 · 전체 바탕화면 최대 8마리",
@@ -77,7 +81,7 @@ const MESSAGES = {
     cursorInteraction: '커서 반응',
     cursorInteractionDescription: '가까이 다가가면 살며시 흩어져요',
     particles: '기포와 부유물',
-    particlesDescription: '빛을 따라 느리게 떠오르는 입자',
+    particlesDescription: '수초 사이에서 올라오는 기포와 물속을 떠도는 작은 입자',
     renderingQuality: '렌더링 품질',
     eco: '절전 · 30',
     balanced: '균형 · 60',
@@ -109,6 +113,10 @@ const MESSAGES = {
     displayInactive: '아래 ‘바탕화면에 적용’을 누르면 시작합니다',
   },
   en: {
+    parallax: 'Slow camera drift',
+    parallaxDescription: 'A small circular view motion reveals the depth of the scene',
+    waterSurface: 'Rippling water surface',
+    waterSurfaceDescription: 'Soft reflections and light shift with the ripples',
     plecoName: "Sailfin pleco",
     plecoCountLabel: "Plecos (maximum 8)",
     plecoHelp: "Bottom dwellers · maximum 8 across the desktop",
@@ -183,7 +191,7 @@ const MESSAGES = {
     cursorInteraction: 'Cursor interaction',
     cursorInteractionDescription: 'Fish gently scatter when you get close',
     particles: 'Bubbles and particles',
-    particlesDescription: 'Particles drift slowly with the light',
+    particlesDescription: 'Bubbles rise between plants while small particles drift with the water',
     renderingQuality: 'Rendering quality',
     eco: 'Eco · 30',
     balanced: 'Balanced · 60',

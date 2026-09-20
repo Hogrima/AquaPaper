@@ -1,5 +1,7 @@
 # AquaPaper
 
+**v1.4.0:** Includes [six depth layers, surface water, particles and individual swimming improvements](docs/ATMOSPHERE.md).
+
 **v1.3.0:** Includes Windows startup, larger tabbed settings, and original Blender rummy-nose tetra and pleco models with species controls. [Release guide](docs/NEXT-VERSION.md) · [Detailed pleco skin, attachment and shelter behavior](docs/PLECO.md). Plecos are limited to eight across the desktop.
 
 [한국어](README.ko.md) · [English](README.en.md) · [Download / Releases](https://github.com/Hogrima/AquaPaper/releases/latest)

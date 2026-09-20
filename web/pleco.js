@@ -1,5 +1,6 @@
 // P. pardalis juveniles/subadults, 20–28 cm in the same 55 cm-height scene as the tetras.
 // A behavior-inspired display, not a fitted biological model. See docs/PLECO.md.
+import { projectPoint } from './scene.js';
 export const MAX_PLECOS = 8;
 export const clampPlecos = value => Number.isFinite(value) ? Math.max(0, Math.min(MAX_PLECOS, Math.round(value))) : 0;
 const clamp = (x,a,b) => Math.max(a,Math.min(b,x));
@@ -82,7 +83,7 @@ export class PlecoColony {
     const dark=settings.lighting==='night'?1:settings.lighting==='dusk'?.6:0,r=this.random;
     for(const f of this.fish) {
       f.cooldown=Math.max(0,f.cooldown-dt);f.panic*=Math.exp(-dt*1.4);
-      const w=1-f.z/2.7,px=this.aspect*.5+(f.x-this.aspect*.5)/w,py=.5+(f.y-.5)/w;
+      const {x:px,y:py}=projectPoint(f,this.aspect,this.time,settings.parallax);
       const close=settings.interaction&&cursor.active&&Math.hypot(px-cursor.x,py-cursor.y)<f.length*.35+.08;
       f.threat=close?f.threat+dt:Math.max(0,f.threat-dt*2);
       if(close&&f.state!=='hide'&&f.state!=='flee'&&!f.cooldown&&(f.threat>.3||cursor.speed>.6)) {

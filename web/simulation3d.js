@@ -1,15 +1,13 @@
 import { PlecoColony } from './pleco.js';
 import { population, SPECIES } from './population.js';
 import { normalizeSettings } from './simulation.js';
+import { projectPoint } from './scene.js';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 const TAU = Math.PI * 2;
 export const TANK_DEPTH = .34;
 export const CAMERA_DISTANCE = 2.7;
-export function projectFish(fish, aspect) {
-  const w = 1 - fish.z / CAMERA_DISTANCE;
-  return { x: aspect / 2 + (fish.x - aspect / 2) / w, y: .5 + (fish.y - .5) / w, w };
-}
+export const projectFish = projectPoint;
 
 // A behavior-inspired model, not a fitted biological predictor. See docs/3D-BEHAVIOR.md.
 // Units are tank-height units; a 0.055-long fish represents roughly 3 cm in a 55 cm view.
@@ -47,10 +45,13 @@ export class TetraSimulation {
       const length = (species === 'rummy' ? .073 : .057) + (r() - .5) * .014;
       this.fish.push({ id, species, x: this.aspect * (.22 + .56 * (group + .5) / groups) + (r() - .5) * .36,
         y: .42 + (r() - .5) * .24, z: (r() - .5) * .42,
-        vx: Math.cos(yaw) * .06, vy: (r() - .5) * .008, vz: Math.sin(yaw) * .06,
+        vx: Math.cos(yaw) * .08, vy: (r() - .5) * .008, vz: Math.sin(yaw) * .08,
         yaw, pitch: 0, roll: 0, phase: r() * TAU, length, panic: 0, tail: .5, bend: 0,
-        burst: r() * .65, burstDuration: .15 + r() * .07, cycle: .52 + r() * .32,
-        noise: r() * TAU, personality: .85 + r() * .3, thrust: false });
+        burst: r() * 1.1, burstDuration: .24 + r() * .12, cycle: .95 + r() * .60,
+        noise: r() * TAU, personality: .72 + r() * .56, thrust: false,
+        behavior: ['school','school','school','explore','hover','forage'][id%6],
+        behaviorTime: 4+r()*16, curiosity: r(), preferredY: .28+r()*.32, preferredZ: (r()-.5)*.32,
+        cruise: .11, effort: .45 });
     }
     }
   }
@@ -77,6 +78,12 @@ export class TetraSimulation {
     // or assigned school ID: local visual neighbors can change as groups meet and separate.
     for (let i = 0; i < fish.length; i++) {
       const f = fish[i], speed = Math.max(.001, Math.hypot(f.vx, f.vy, f.vz));
+      f.behaviorTime-=dt;
+      if(f.behaviorTime<=0){
+        const choice=this.random(), school=f.species==='rummy'?.64:.48;
+        f.behavior=choice<school?'school':choice<school+.19?'explore':choice<school+.29?'hover':'forage';
+        f.behaviorTime=(f.behavior==='school'?12:5)+this.random()*13;
+      }
       ids.fill(-1); distances.fill(Infinity);
       let sx = 0, sy = 0, sz = 0, closest = -1, closestD = Infinity;
       for (let j = 0; j < fish.length; j++) {
@@ -111,7 +118,8 @@ export class TetraSimulation {
         // Subcritical alarm transfer avoids an indefinitely self-sustaining panic loop.
         alarm = Math.max(alarm, o.panic * Math.max(0, 1 - Math.sqrt(distances[k]) / .24) * .72);
       }
-      const social = f.panic > .5 ? .28 : 1;
+      const independence = {school:1,explore:.38,hover:.68,forage:.50}[f.behavior];
+      const social = f.panic > .5 ? .28 : independence;
       if (weight) {
         const cohesion = (f.species === 'rummy' ? .52 : .43) * social, alignment = (f.species === 'rummy' ? 1.35 : 1.1) * social;
         fx += (cx * cohesion + ax * alignment) / weight;
@@ -122,12 +130,14 @@ export class TetraSimulation {
         const o = fish[closest], d = Math.sqrt(closestD) || 1;
         fx += (o.x - f.x)/d*.055; fy += (o.y - f.y)/d*.045; fz += (o.z - f.z)/d*.045;
       }
-      fx += Math.sin(f.noise + this.time * .37) * .008;
-      fy += Math.sin(f.noise * 1.7 + this.time * .28) * .003 + (.44-f.y)*.018;
-      fz += Math.sin(f.noise * 2.3 + this.time * .31) * .011 - f.z*.016;
+      const exploration=f.behavior==='explore'?2.8:1;
+      fx += Math.sin(f.noise + this.time * (.19+f.curiosity*.15)) * .011*exploration;
+      const preferredY=f.behavior==='forage'?.65:f.preferredY;
+      fy += Math.sin(f.noise * 1.7 + this.time * .21) * .004 + (preferredY-f.y)*.026;
+      fz += Math.sin(f.noise * 2.3 + this.time * .23) * .014*exploration + (f.preferredZ-f.z)*.022;
       let panic = Math.max(f.panic * Math.exp(-dt * 1.25), alarm);
       if (this.settings.interaction && cursor.active) {
-        const projected = projectFish(f, aspect), dx = projected.x-cursor.x, dy = projected.y-cursor.y;
+        const projected = projectFish(f, aspect,this.time,this.settings.parallax), dx = projected.x-cursor.x, dy = projected.y-cursor.y;
         const d = Math.hypot(dx, dy), radius = .135 + Math.min(cursor.speed, 1.8)*.022;
         if (d < radius) {
           const response = (1-d/radius)**1.4, inv = 1/Math.max(d,.001);
@@ -151,11 +161,11 @@ export class TetraSimulation {
       f.burst += dt * pace;
       if (f.burst >= f.cycle) {
         f.burst %= f.cycle;
-        f.cycle = .52 + this.random()*.32;
-        f.burstDuration = .15 + this.random()*.07;
+        f.cycle = (.95 + this.random()*.60)/Math.sqrt(f.personality);
+        f.burstDuration = .24 + this.random()*.12;
       }
       f.thrust = f.burst < f.burstDuration || f.panic > .28;
-      const steering = f.thrust ? 1 : .38;
+      const steering = f.thrust ? 1 : .60;
       const oldSpeed = Math.max(.0001, Math.hypot(f.vx,f.vy,f.vz));
       let nx = f.vx + this.forces[i*3]*dt*steering*pace;
       let ny = f.vy + this.forces[i*3+1]*dt*steering*pace;
@@ -168,8 +178,14 @@ export class TetraSimulation {
       f.yaw += yawChange;
       f.pitch += clamp(pitch-f.pitch,-maxTurn*.65,maxTurn*.65);
       f.pitch = clamp(f.pitch,-.55-f.panic*.25,.55+f.panic*.25);
-      const acceleration = f.thrust ? (.21 + f.panic*.65)*f.personality*pace*pace : 0;
-      const speed = clamp((oldSpeed+acceleration*dt)*Math.exp(-dt*1.9*pace),.018*pace,(.125+f.panic*.23)*pace);
+      // One smooth kick carries the body through a long glide. Low drag avoids the
+      // previous start/stop look; an intent change eases toward a new cruise speed.
+      const intentSpeed={school:.125,explore:.15,hover:.045,forage:.075}[f.behavior]*f.personality*pace;
+      f.cruise+=(intentSpeed-f.cruise)*(1-Math.exp(-dt*.9));
+      const pulse=.32+.68*Math.sin(Math.PI*clamp(f.burst/f.burstDuration,0,1));
+      const acceleration = f.thrust ? (.28*pulse + f.panic*.75)*f.personality*pace*pace : 0;
+      const drag=.58*pace+Math.max(0,oldSpeed-f.cruise-f.panic*.25)*16;
+      const speed = clamp((oldSpeed+acceleration*dt)*Math.exp(-dt*drag),.022*pace,(.18+f.panic*.23)*pace);
       f.vx = Math.cos(f.yaw)*Math.cos(f.pitch)*speed;
       f.vy = -Math.sin(f.pitch)*speed;
       f.vz = Math.sin(f.yaw)*Math.cos(f.pitch)*speed;
@@ -182,8 +198,9 @@ export class TetraSimulation {
       const angularRate = yawChange/dt;
       f.roll += (clamp(-angularRate*.07,-.22,.22)-f.roll)*Math.min(1,dt*7);
       f.bend += (clamp(angularRate*.08,-.32,.32)-f.bend)*Math.min(1,dt*9);
-      f.tail += ((f.thrust ? .82+f.panic*.18 : .12)-f.tail)*Math.min(1,dt*13);
-      f.phase += dt*TAU*(f.thrust ? 3.2+speed*25 : .85+speed*8);
+      f.effort += ((f.thrust ? .80+f.panic*.2 : .06)-f.effort)*(1-Math.exp(-dt*8));
+      f.tail += (f.effort-f.tail)*(1-Math.exp(-dt*9));
+      f.phase += dt*TAU*(.30+speed*2.5+f.effort*(2.0+speed*7));
     }
   }
 }

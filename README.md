@@ -1,5 +1,7 @@
 # AquaPaper
 
+**v1.4.0:** 6개 깊이 레이어, 수면·기포·부유물 효과와 개별 유영 개선을 포함합니다. / Includes six depth layers, water, bubbles, suspended particles and individual swimming improvements. [릴리즈 안내 / release guide](docs/ATMOSPHERE.md)
+
 **v1.3.0:** Windows 자동 시작, 탭형 설정, Blender 러미노즈·플레코 추가·제거 기능을 포함합니다. [릴리즈 안내 / release guide](docs/NEXT-VERSION.md) · [플레코 피부·행동 / Pleco skin and behavior](docs/PLECO.md).
 
 **커서에 반응하는 나만의 수족관 바탕화면 · An interactive aquarium wallpaper for Windows**

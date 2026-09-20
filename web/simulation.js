@@ -1,6 +1,7 @@
 import { clampPlecos } from './pleco.js';
 import { population } from './population.js';
-export const DEFAULTS = Object.freeze({ count: 72, activity: 65, lighting: 'day', interaction: true, particles: true, quality: 'balanced', fishMode: 'tetra3d', language: 'ko', rummyCount: 0, plecoCount: 0 });
+import { cameraOrbit } from './scene.js';
+export const DEFAULTS = Object.freeze({ count: 72, activity: 65, lighting: 'day', interaction: true, particles: true, parallax: true, waterSurface: true, quality: 'balanced', fishMode: 'tetra3d', language: 'ko', rummyCount: 0, plecoCount: 0 });
 export function normalizeSettings(value = {}) {
   if (!value || typeof value !== 'object') value = {};
   const number = (v, fallback, lo, hi) => typeof v === 'number' && Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : fallback;
@@ -12,6 +13,8 @@ export function normalizeSettings(value = {}) {
     lighting: ['day', 'dusk', 'night'].includes(value.lighting) ? value.lighting : 'day',
     interaction: typeof value.interaction === 'boolean' ? value.interaction : true,
     particles: typeof value.particles === 'boolean' ? value.particles : true,
+    parallax: typeof value.parallax === 'boolean' ? value.parallax : true,
+    waterSurface: typeof value.waterSurface === 'boolean' ? value.waterSurface : true,
     quality: ['eco', 'balanced', 'high'].includes(value.quality) ? value.quality : 'balanced',
     fishMode: ['classic', 'tetra3d'].includes(value.fishMode) ? value.fishMode : 'tetra3d',
     language: ['ko', 'en'].includes(value.language) ? value.language : 'ko',
@@ -64,6 +67,7 @@ export class AquariumSimulation {
     this.time += dt;
     const fish = this.fish, t = this.time, aspect = this.aspect;
     const pace = this.settings.activity / 65, cursor = this.cursor;
+    const orbit = cameraOrbit(this.time,this.settings.parallax);
     // Compute from the same frame snapshot before applying forces (no ordering bias).
     for (let i = 0; i < fish.length; i++) {
       const f = fish[i];
@@ -85,7 +89,7 @@ export class AquariumSimulation {
       fy += Math.cos(t * .51 + f.phase * 2) * .006;
       let startled = false;
       if (this.settings.interaction && cursor.active) {
-        const dx = f.x - cursor.x, dy = f.y - cursor.y, d = Math.hypot(dx, dy);
+        const dx = f.x - orbit[0]*.82 - cursor.x, dy = f.y - orbit[1]*.82 - cursor.y, d = Math.hypot(dx, dy);
         const radius = .155 + Math.min(cursor.speed, 1.5) * .025;
         if (d < radius) {
           const strength = Math.pow(1 - d / radius, 1.35);

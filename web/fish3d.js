@@ -1,5 +1,6 @@
 import { createProgram } from './gl.js';
 import { CAMERA_DISTANCE } from './simulation3d.js';
+import { cameraOrbit } from './scene.js';
 
 const VERTEX = `#version 300 es
 precision highp float;
@@ -12,6 +13,7 @@ in vec4 a_pose;
 in vec4 a_swim;
 uniform float u_aspect;
 uniform float u_camera;
+uniform vec2 u_orbit;
 out vec3 v_normal;
 out vec3 v_world;
 out vec3 v_local;
@@ -51,6 +53,7 @@ void main(){
                  q.x*q2.z+q.w*q2.y,q.y*q2.z-q.w*q2.x,1.-q.x*q2.x-q.y*q2.y);
  }
  vec3 world=vec3(a_fish.x-u_aspect*.5,.5-a_fish.y,a_fish.z)+rotation*p*a_fish.w;
+ world.xy+=vec2(-u_orbit.x,u_orbit.y)*.82;
  float d=u_camera-world.z,nearPlane=.1,farPlane=5.;
  float clipZ=((farPlane+nearPlane)/(farPlane-nearPlane)*d-2.*farPlane*nearPlane/(farPlane-nearPlane))/u_camera;
  gl_Position=vec4(world.x*2./u_aspect,world.y*2.,clipZ,d/u_camera);
@@ -222,6 +225,7 @@ export class TetraRenderer {
     const allFish=[...sim.fish,...(sim.plecos||[]),...(sim.shelters||[])];
     gl.useProgram(this.program);
     gl.uniform1f(this.aspect,sim.aspect);gl.uniform1f(this.camera,CAMERA_DISTANCE);gl.uniform1f(this.lighting,lighting);
+    gl.uniform2f(this.orbit??=gl.getUniformLocation(this.program,'u_orbit'),...cameraOrbit(sim.time,sim.settings.parallax));
     gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.depthMask(true);gl.disable(gl.BLEND);gl.disable(gl.CULL_FACE);
     this.drawnVertices=0;
     // All opaque bodies go first, irrespective of species.

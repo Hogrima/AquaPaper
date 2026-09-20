@@ -41,6 +41,19 @@ internal sealed partial class AquariumApp
             await Task.Delay(4000);
             var before = JsonDocument.Parse(await window.Diagnostics()).RootElement.Clone();
             object? modeSwitch = null;
+            var environmentCases = new List<JsonElement>();
+            if (args.Contains("--environment-test")) {
+                var aquariumSettings = settings.Deserialize<Dictionary<string, JsonElement>>()!;
+                foreach (bool enabled in new[] { false, true }) {
+                    var changed = new Dictionary<string, JsonElement>(aquariumSettings);
+                    foreach (var key in new[] { "parallax", "waterSurface", "particles" }) changed[key] = JsonSerializer.SerializeToElement(enabled);
+                    window.Post(new { type = "settings", settings = changed }); await Task.Delay(700);
+                    environmentCases.Add(JsonDocument.Parse(await window.Diagnostics()).RootElement.Clone());
+                    File.WriteAllText(Path.Combine(folder, "environment-diagnostics.json"), JsonSerializer.Serialize(environmentCases, JsonOptions));
+                    await window.CaptureFrame(Path.Combine(folder, enabled ? "atmosphere-on.png" : "atmosphere-off.png"));
+                }
+                window.Post(new { type = "settings", settings = aquariumSettings }); await Task.Delay(200);
+            }
             var qualityCases = new List<JsonElement>();
             if (settings.GetProperty("fishMode").GetString() == "tetra3d") {
                 if (!before.GetProperty("tetra").GetProperty("ready").GetBoolean() || before.GetProperty("settings").GetProperty("fishMode").GetString() != "tetra3d") throw new InvalidOperationException("3D mesh did not initialize");
@@ -62,9 +75,8 @@ internal sealed partial class AquariumApp
                 var back = JsonDocument.Parse(await window.Diagnostics()).RootElement.Clone();
                 var f = back.GetProperty("tetra").GetProperty("sample")[0];
                 double aspect = back.GetProperty("width").GetDouble() / back.GetProperty("height").GetDouble();
-                double w = 1 - f.GetProperty("z").GetDouble() / 2.7;
-                double x = (.5 * aspect + (f.GetProperty("x").GetDouble() - .5 * aspect) / w) / aspect;
-                double y = .5 + (f.GetProperty("y").GetDouble() - .5) / w;
+                double x = f.GetProperty("projectedX").GetDouble() / aspect;
+                double y = f.GetProperty("projectedY").GetDouble();
                 window.Post(new { type = "cursor", x, y, active = true, speed = 2 }); await Task.Delay(120);
                 var escaped = JsonDocument.Parse(await window.Diagnostics()).RootElement.Clone();
                 window.Post(new { type = "cursor", x, y, active = false, speed = 0 });
@@ -108,7 +120,7 @@ internal sealed partial class AquariumApp
             bool cleanedUp = wallpapers.Count == 0 && handles.All(h => !NativeMethods.IsWindow(h));
             var restored = JsonDocument.Parse(await window.Diagnostics()).RootElement.Clone();
             var report = new { preview = before, pausedAt, pausedLater, desktopAttached = attached, wallpaper = wallpaperReport, restored, cleanedUp, modeSwitch, qualityCases,
-                monitors = Monitors().Select(m => new { id = m.Id, m.Number, m.Primary, bounds = Rect(m.Bounds) }), cases };
+                monitors = Monitors().Select(m => new { id = m.Id, m.Number, m.Primary, bounds = Rect(m.Bounds) }), cases, environmentCases };
             File.WriteAllText(Path.Combine(folder, "smoke-test.json"), JsonSerializer.Serialize(report, JsonOptions));
             AppLog.Write("Smoke test complete.");
         }

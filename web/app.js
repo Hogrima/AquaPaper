@@ -1,7 +1,8 @@
 import { settingsControls } from './settings-ui.js';
 import { resizePopulation } from './population.js';
 import { AquariumSimulation, DEFAULTS, normalizeSettings } from './simulation.js';
-import { TetraSimulation } from './simulation3d.js';
+import { TetraSimulation, projectFish } from './simulation3d.js';
+import { cameraOrbit } from './scene.js';
 import { AquariumRenderer } from './renderer.js';
 import { displayControls } from './display.js';
 import { translate } from './i18n.js';
@@ -41,7 +42,7 @@ function updateUi() {
   $('fish-count').value = settings.count; $('fish-value').textContent = t('fishCount', { count: settings.count }); $('fish-label').textContent = t('fishCount', { count: settings.count + (settings.fishMode === 'tetra3d' ? settings.plecoCount : 0) });
   document.querySelector('[data-i18n=fishCountLabel]').textContent = t(settings.fishMode === 'tetra3d' ? 'schoolFishCount' : 'fishCountLabel');
   $('activity').value = settings.activity; $('activity-value').textContent = t(settings.activity < 65 ? 'gentle' : settings.activity < 95 ? 'calm' : 'lively');
-  $('interaction').checked = settings.interaction; $('particles').checked = settings.particles;
+  for (const name of ['interaction','particles','parallax','waterSurface']) $(name).checked = settings[name];
   for (const name of ['language', 'lighting', 'quality', 'fishMode']) for (const b of $(name).querySelectorAll('button')) { const selected = b.dataset.value === settings[name]; b.classList.toggle('selected', selected); b.setAttribute('aria-pressed', String(selected)); }
   $('fishMode').querySelector('[data-value="tetra3d"]').disabled = Boolean(tetraError);
   $('fish-mode-description').textContent = tetraError ? t('tetraError') : t(settings.fishMode === 'tetra3d' ? 'tetraDescription' : 'classicDescription');
@@ -99,7 +100,7 @@ $('fullscreen').addEventListener('click', fullscreen);
 $('apply').addEventListener('click', () => { if (host) send('wallpaper'); else toast(t('wallpaperNativeOnly')); });
 $('fish-count').addEventListener('input', e => applySettings(resizePopulation(settings, Number(e.target.value))));
 $('activity').addEventListener('input', e => applySettings({ ...settings, activity: Number(e.target.value) }));
-for (const name of ['interaction', 'particles']) $(name).addEventListener('change', e => applySettings({ ...settings, [name]: e.target.checked }));
+for (const name of ['interaction', 'particles','parallax','waterSurface']) $(name).addEventListener('change', e => applySettings({ ...settings, [name]: e.target.checked }));
 for (const name of ['language', 'lighting', 'quality', 'fishMode']) $(name).addEventListener('click', e => { const b = e.target.closest('button'); if (b && !b.disabled) applySettings({ ...settings, [name]: b.dataset.value }); });
 $('reset').addEventListener('click', () => { applySettings(DEFAULTS); toast(t('settingsReset')); });
 $('reload').addEventListener('click', () => location.reload());
@@ -157,8 +158,9 @@ $('aquarium').addEventListener('webglcontextlost', e => { e.preventDefault(); re
 $('aquarium').addEventListener('webglcontextrestored', () => boot());
 // Read-only diagnostics consumed by the native smoke test; never exposed to remote content.
 window.aquariumDiagnostics = () => ({ ready, fish: (simulation?.fish.length || 0) + (simulation?.plecos?.length || 0), plecoAllocation, fps: actualFps, time: simulation?.time || 0, errors: [...errors], settings: { ...settings }, paused: userPaused, systemPaused, wallpaper, monitorCount, displayMode, cursorActive: simulation?.cursor.active, width: renderer?.canvas.width, height: renderer?.canvas.height, webglError: renderer?.gl.getError() ?? -1,
-  tetra: { population: [...(simulation?.fish || []), ...(simulation?.plecos || [])].reduce((result, f) => { const id = f.species || 'neon'; result[id] = (result[id] || 0) + 1; return result; }, {}), ready: renderer?.tetra.ready || false, error: tetraError, vertices: renderer?.tetra.drawnVertices || 0,
+  environment: { layers: renderer?.layerCount || 0, cachedLayers: renderer?.layerTextures?.length||0, orbit: cameraOrbit(simulation?.time||0,settings.parallax), waterSurface: settings.waterSurface, particles: renderer?.visibleParticles },
+  tetra: { behaviors: (simulation?.fish || []).reduce((r,f)=>{const state=f.behavior||'school';r[state]=(r[state]||0)+1;return r;},{}), population: [...(simulation?.fish || []), ...(simulation?.plecos || [])].reduce((result, f) => { const id = f.species || 'neon'; result[id] = (result[id] || 0) + 1; return result; }, {}), ready: renderer?.tetra.ready || false, error: tetraError, vertices: renderer?.tetra.drawnVertices || 0,
     plecos: simulation?.plecos?.map(f=>({id:f.id,slot:f.slot,x:f.x,y:f.y,z:f.z,state:f.state,surface:f.surface,centimeters:f.centimeters,orientation:f.orientation,tail:f.tail})) || [],
     depthRange: settings.fishMode === 'tetra3d' ? [Math.min(...simulation.fish.map(f=>f.z)),Math.max(...simulation.fish.map(f=>f.z))] : null,
-    sample: settings.fishMode === 'tetra3d' ? simulation.fish.slice(0,6).map(f=>({x:f.x,y:f.y,z:f.z,yaw:f.yaw,pitch:f.pitch,tail:f.tail,panic:f.panic})) : [] } });
+    sample: settings.fishMode === 'tetra3d' ? simulation.fish.slice(0,6).map(f=>{const p=projectFish(f,simulation.aspect,simulation.time,settings.parallax);return {x:f.x,y:f.y,z:f.z,yaw:f.yaw,pitch:f.pitch,tail:f.tail,panic:f.panic,projectedX:p.x,projectedY:p.y,speed:Math.hypot(f.vx,f.vy,f.vz)};}) : [] } });
 boot();

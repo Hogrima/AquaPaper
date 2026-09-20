@@ -93,7 +93,14 @@ internal sealed class AquariumWindow : Form
     internal void OpenSettings() { if (ready) Post(new { type = "showSettings" }); else showSettingsPending = true; }
     internal void AttachToDesktop() { DesktopParent = NativeMethods.AttachDesktop(Handle, Target!.Bounds); }
     internal Task<string> Diagnostics() => web.CoreWebView2.ExecuteScriptAsync("JSON.stringify(window.aquariumDiagnostics())").ContinueWith(t => JsonSerializer.Deserialize<string>(t.GetAwaiter().GetResult()) ?? "null", TaskScheduler.Default);
-    internal async Task CaptureFrame(string path) { using var stream = File.Create(path); await web.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, stream); }
+    internal async Task CaptureFrame(string path)
+    {
+        using var stream = File.Create(path);
+        // WebView2 can occasionally leave a compositor capture pending.
+        // Fail the isolated test with a useful report instead of hanging forever.
+        await web.CoreWebView2.CapturePreviewAsync(CoreWebView2CapturePreviewImageFormat.Png, stream)
+            .WaitAsync(TimeSpan.FromSeconds(15));
+    }
 
     private void ToggleFullscreen()
     {

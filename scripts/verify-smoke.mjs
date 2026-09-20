@@ -2,6 +2,16 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 const report = JSON.parse(await readFile(process.argv[2] || new URL('../artifacts/smoke-test.json', import.meta.url), 'utf8'));
 const is3D = report.preview.settings.fishMode === 'tetra3d';
+for(const d of report.environmentCases || []) {
+  assert.equal(d.webglError,0);assert.deepEqual(d.errors,[]);
+  assert.equal(d.environment.layers,6);
+  assert.equal(d.environment.cachedLayers,6);
+  assert.equal(d.environment.waterSurface,d.settings.waterSurface);
+  if(d.settings.particles){assert.ok(d.environment.particles.dust>=100);assert.ok(d.environment.particles.bubbles>=18);}
+  else assert.equal(d.environment.particles.total,0);
+  if(!d.settings.parallax)assert.deepEqual(d.environment.orbit,[0,0]);
+  else assert.ok(Math.hypot(...d.environment.orbit)>0);
+}
 function verify3D(d, label) {
   assert.equal(d.settings.fishMode, 'tetra3d', `${label}: 3D mode fell back unexpectedly`);
   if (d.tetra.population) {
