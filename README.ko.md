@@ -1,5 +1,7 @@
 # AquaPaper
 
+**v1.3.0:** Windows 자동 시작, 큰 글씨의 카테고리 탭, Blender 러미노즈 테트라·플레코 추가·제거를 포함합니다. [릴리즈 안내](docs/NEXT-VERSION.md) · [플레코의 상세 피부·부착·은신 행동](docs/PLECO.md). 플레코는 전체 바탕화면 합계 최대 8마리입니다.
+
 [한국어](README.ko.md) · [English](README.en.md) · [다운로드 / Releases](https://github.com/Hogrima/AquaPaper/releases/latest)
 
 ![AquaPaper 실행 화면](docs/screenshots/aquarium.png)

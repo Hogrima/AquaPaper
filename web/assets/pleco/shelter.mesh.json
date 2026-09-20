@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "generator": "Blender 5.2.2 LTS",
+  "stride": 11,
+  "length": 1,
+  "species": "Driftwood refuge",
+  "originalAsset": true,
+  "coordinates": "+X head, +Y dorsal, +Z lateral",
+  "opaqueVertices": 6621,
+  "finVertices": 0,
+  "binary": "shelter.mesh.bin",
+  "lod": {
+    "opaqueVertices": 1653,
+    "finVertices": 0,
+    "binary": "shelter.lod.bin"
+  }
+}

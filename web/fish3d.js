@@ -17,7 +17,11 @@ out vec3 v_world;
 out vec3 v_local;
 out vec4 v_color;
 out float v_surface;
+out float v_cover;
+flat out float v_kind;
 float flex(float x){
+ if(a_swim.w>1.5)return 0.;
+ if(a_swim.w>.5)return pow(clamp((.15-x)/1.60,0.,1.),2.)*sin(a_swim.z+x*4.8)*.22*a_swim.x;
  float envelope=pow(clamp((.48-x)/1.68,0.,1.),2.);
  return envelope*(sin(a_pose.w+x*5.2)*(.035+.19*a_swim.x)+a_swim.y);
 }
@@ -25,8 +29,12 @@ void main(){
  vec3 p=a_position;
  p.z+=flex(p.x);
  // Paired pectoral fins make small stabilizing strokes, including while coasting.
- if(a_surface>.5&&a_surface<1.5&&p.x>.0&&p.y<-.035){
+ if(a_swim.w<.5&&a_surface>.5&&a_surface<1.5&&p.x>.0&&p.y<-.035){
    p.z+=sin(a_pose.w*.55+sign(p.z))*.025*smoothstep(.07,.25,abs(p.z));
+ }
+ if(a_swim.w>.5&&a_swim.w<1.5){
+   if(a_surface>.5&&a_surface<1.5&&p.y>.22)p.y=.22+(p.y-.22)*(.32+.68*a_swim.x);
+   if(p.x>.40){p.z*=1.+.009*sin(a_swim.z);if(p.y<-.055)p.y-=.0015*sin(a_swim.z*1.7);}
  }
  vec3 normal=normalize(vec3(a_normal.x-a_normal.z*(flex(p.x+.002)-flex(p.x-.002))/.004,a_normal.yz));
  float cy=cos(a_pose.x),sy=sin(a_pose.x),cp=cos(a_pose.y),sp=sin(a_pose.y);
@@ -36,11 +44,17 @@ void main(){
  vec3 rolledUp=up*cos(a_pose.z)+side*sin(a_pose.z);
  vec3 rolledSide=side*cos(a_pose.z)-up*sin(a_pose.z);
  mat3 rotation=mat3(forward,rolledUp,rolledSide);
+ if(a_swim.w>.5){
+   vec4 q=a_pose;vec3 q2=q.xyz*2.;
+   rotation=mat3(1.-q.y*q2.y-q.z*q2.z,q.x*q2.y+q.w*q2.z,q.x*q2.z-q.w*q2.y,
+                 q.x*q2.y-q.w*q2.z,1.-q.x*q2.x-q.z*q2.z,q.y*q2.z+q.w*q2.x,
+                 q.x*q2.z+q.w*q2.y,q.y*q2.z-q.w*q2.x,1.-q.x*q2.x-q.y*q2.y);
+ }
  vec3 world=vec3(a_fish.x-u_aspect*.5,.5-a_fish.y,a_fish.z)+rotation*p*a_fish.w;
  float d=u_camera-world.z,nearPlane=.1,farPlane=5.;
  float clipZ=((farPlane+nearPlane)/(farPlane-nearPlane)*d-2.*farPlane*nearPlane/(farPlane-nearPlane))/u_camera;
  gl_Position=vec4(world.x*2./u_aspect,world.y*2.,clipZ,d/u_camera);
- v_normal=rotation*normal;v_world=world;v_local=a_position;v_color=a_color;v_surface=a_surface;
+ v_normal=rotation*normal;v_world=world;v_local=a_position;v_color=a_color;v_surface=a_surface;v_kind=a_swim.w;v_cover=a_swim.w>.5&&a_swim.w<1.5?a_swim.y:0.;
 }`;
 
 const FRAGMENT = `#version 300 es
@@ -50,25 +64,81 @@ in vec3 v_world;
 in vec3 v_local;
 in vec4 v_color;
 in float v_surface;
+in float v_cover;
+flat in float v_kind;
 uniform float u_camera;
 uniform float u_lighting;
 out vec4 outColor;
 const float PI=3.14159265;
-float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+float hash(vec2 p){vec3 q=fract(vec3(p.xyx)*.1031);q+=dot(q,q.yzx+33.33);return fract((q.x+q.y)*q.z);}
+vec2 skinCell(vec2 uv){
+ vec2 cell=floor(uv),local=fract(uv);float first=10.,second=10.;
+ for(int y=-1;y<=1;y++)for(int x=-1;x<=1;x++){
+   vec2 o=vec2(float(x),float(y));vec2 id=cell+o;
+   vec2 jitter=vec2(hash(id),hash(id+vec2(53.7,19.1)));
+   float d=length(o+.25+jitter*.5-local);
+   if(d<first){second=first;first=d;}else second=min(second,d);
+ }
+ return vec2(first,second-first);
+}
+vec3 skinNormal(vec3 n,float height){
+ vec3 dx=dFdx(v_world),dy=dFdy(v_world),r1=cross(dy,n),r2=cross(n,dx);
+ float det=dot(dx,r1);
+ return normalize(n-sign(det)*(dFdx(height)*r1+dFdy(height)*r2)/max(abs(det),.0000001));
+}
+
 void main(){
  vec3 n=normalize(v_normal);if(!gl_FrontFacing)n=-n;
+ vec3 base=v_color.rgb;float skinRoughness=.62;
+ // Object-space detail cannot turn into a magnified low-resolution color texture.
+ // Derivative filtering suppresses shimmer at distance and preserves detail close up.
+ if(v_kind>.5&&v_kind<1.5&&v_surface<1.5){
+   bool membrane=v_surface>.5;
+   vec2 uv=membrane?vec2(v_local.x*17.,v_local.y*23.+v_local.z*13.):vec2(v_local.x*16.,v_local.z*27.+v_local.y*9.);
+   vec2 cell=skinCell(uv);float aa=max(.012,length(fwidth(uv))*.7);
+   float spot=1.-smoothstep(.17-aa,.28+aa,cell.x);
+   float belly=membrane?0.:1.-smoothstep(-.045,-.012,v_local.y);
+   base=mix(vec3(.15,.113,.042),vec3(.012,.019,.008),spot);
+   base=mix(base,vec3(.22,.185,.105)*(1.-spot*.48),belly*.82);
+   // Fin rays are separate Blender geometry; keep them legible through the membrane.
+   if(membrane)base*=mix(.80,1.24,smoothstep(.72,.80,v_color.a));
+   float grain=hash(floor(uv*13.));float grainVisibility=1.-smoothstep(.3,1.,length(fwidth(uv*13.)));
+   base*=1.+(grain-.5)*.14*grainVisibility;
+   vec2 plates=skinCell(vec2(v_local.x*11.,v_local.z*13.+v_local.y*4.));
+   float seam=(1.-smoothstep(.016,.065,plates.y))*(1.-belly)*(membrane?0.:1.);
+   base*=1.-seam*.27;
+   float abdominalFold=sin(v_local.x*65.+sin(v_local.z*16.)*.8)*belly*.000035;
+   float ridge=(1.-seam)*.00022+(grain-.5)*grainVisibility*.000045+abdominalFold;
+   n=skinNormal(n,ridge);
+   skinRoughness=.46+grain*.13+seam*.12;
+ }
+ if(v_kind>.5&&v_kind<1.5&&v_surface>2.5){
+   vec2 oral=vec2(v_local.x-.72,v_local.z/ .93);
+   float radius=length(oral),angle=atan(oral.y,oral.x);
+   float grooves=sin(angle*47.+sin(angle*13.)*.6);
+   float lip=smoothstep(.10,.14,radius);
+   base*=1.+grooves*.12*lip;
+   n=skinNormal(n,grooves*.000035*lip);
+   skinRoughness=.67;
+ }
+ if(v_kind>1.5){
+   float grain=sin(v_local.x*72.+v_local.y*61.+sin(v_local.z*4.)*.8);
+   float cracks=pow(max(0.,sin(v_local.x*37.+v_local.y*41.+sin(v_local.z*3.)*.4)),18.);
+   base=mix(vec3(.032,.015,.005),vec3(.065,.035,.011),grain*.5+.5)*(1.-cracks*.50);
+   float moss=smoothstep(.22,.5,v_local.y)*(.5+.5*sin(v_local.z*17.+v_local.x*21.));
+   base=mix(base,vec3(.027,.036,.009),moss*.40);n=skinNormal(n,grain*.00005-cracks*.00009);
+ }
  vec3 view=normalize(vec3(0.,0.,u_camera)-v_world);
  vec3 light=normalize(vec3(-.35,.8,1.1));
  vec3 halfway=normalize(light+view);
  float ndl=max(.0,dot(n,light)),ndv=max(.025,dot(n,view));
  bool fin=v_surface>.5&&v_surface<1.5;
- bool eye=v_surface>1.5;
- vec3 base=v_color.rgb;
+ bool eye=v_surface>1.5&&v_surface<2.5;
  // Keep structural blue on the flank: the color shifts with viewing angle, not a flat glow.
- float stripe=step(.15,base.b-base.r)*(1.-step(.5,v_surface));
+ float stripe=step(.15,base.b-base.r)*(1.-step(.5,v_surface))*(1.-step(.5,v_kind));
  base=mix(base,mix(vec3(.005,.15,.66),vec3(.01,.64,.82),pow(ndv,.8)),stripe*.72);
- float roughness=eye?.13:(fin?.48:.36);
- if(!fin&&!eye){
+ float roughness=v_kind>1.5?.92:(eye?.13:(v_kind>.5?skinRoughness:(fin?.48:.36)));
+ if(!fin&&!eye&&v_kind<.5){
    vec2 cell=vec2(v_local.x*85.,v_local.y*120.);
    cell.x+=mod(floor(cell.y),2.)*.5;
    float scale=hash(floor(cell));
@@ -93,28 +163,31 @@ void main(){
  if(u_lighting>1.5)color*=vec3(.32,.50,.76);
  float fog=clamp((.38-v_world.z)*.42,0.,.30);
  color=mix(color,vec3(.025,.065,.046),fog);
+ color*=mix(1.,.18,clamp(v_cover,0.,1.));
  color=pow(max(color,vec3(0.)),vec3(1./2.2));
  outColor=vec4(color,fin?v_color.a:1.);
 }`;
 
 export class TetraRenderer {
-  constructor(gl) { this.gl = gl; this.ready = false; this.instances = new Float32Array(160*12); }
+  constructor(gl) { this.gl = gl; this.ready = false; this.instances = new Float32Array(176*12); }
   async load() {
-    const [metaResponse, bufferResponse] = await Promise.all([
-      fetch('assets/neon-tetra/neon-tetra.mesh.json'), fetch('assets/neon-tetra/neon-tetra.mesh.bin')]);
-    if (!metaResponse.ok || !bufferResponse.ok) throw new Error('3D 네온테트라 모델 파일을 읽지 못했습니다. 설치 파일 전체를 확인하세요.');
-    const meta = await metaResponse.json(), data = await bufferResponse.arrayBuffer();
-    const total = meta.opaqueVertices+meta.finVertices;
-    if (meta.version!==1 || meta.stride!==11 || !Number.isSafeInteger(total) || total<3 || total>300000 || data.byteLength!==total*44) throw new Error('3D 모델 형식이 올바르지 않습니다.');
-    const lodResponse = await fetch('assets/neon-tetra/neon-tetra.lod.bin');
-    if (!lodResponse.ok) throw new Error('3D 경량 모델을 읽지 못했습니다.');
-    const lodData = await lodResponse.arrayBuffer(), lodTotal = meta.lod?.opaqueVertices+meta.lod?.finVertices;
-    if (!Number.isSafeInteger(lodTotal) || lodTotal<3 || lodTotal>total || lodData.byteLength!==lodTotal*44) throw new Error('3D 경량 모델 형식이 올바르지 않습니다.');
     const gl = this.gl;
-    this.meta = meta; this.program = createProgram(gl,VERTEX,FRAGMENT);
-    this.buffer=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,this.buffer);gl.bufferData(gl.ARRAY_BUFFER,this.instances.byteLength,gl.DYNAMIC_DRAW);
-    this.full = this.geometry(data,meta);
-    this.lod = this.geometry(lodData,meta.lod);
+    this.models = {};
+    this.program = createProgram(gl, VERTEX, FRAGMENT);
+    this.buffer = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, this.instances.byteLength, gl.DYNAMIC_DRAW);
+    this.attributes = ['a_fish','a_pose','a_swim'].map(name => gl.getAttribLocation(this.program,name));
+    for (const [id, slug, file] of [['neon','neon-tetra','neon-tetra'],['rummy','rummy-nose','rummy-nose'],['pleco','pleco','pleco'],['shelter','pleco','shelter']]) {
+      const responses = await Promise.all(['mesh.json','mesh.bin','lod.bin'].map(ext => fetch(`assets/${slug}/${file}.${ext}`)));
+      if (responses.some(r => !r.ok)) throw new Error(`Missing 3D model: ${slug}`);
+      const [meta,data,lodData] = await Promise.all([responses[0].json(),responses[1].arrayBuffer(),responses[2].arrayBuffer()]);
+      for (const [ranges,bytes] of [[meta,data],[meta.lod,lodData]]) {
+        const total = ranges?.opaqueVertices + ranges?.finVertices;
+        if (meta.version !== 1 || meta.stride !== 11 || !Number.isFinite(meta.length) || meta.length <= 0 || !Number.isSafeInteger(total) || total < 3 || total > 300000 || bytes.byteLength !== total * 44) throw new Error(`Invalid 3D model: ${slug}`);
+      }
+      this.models[id] = {meta, full:this.geometry(data,meta), lod:this.geometry(lodData,meta.lod)};
+    }
+    this.meta = this.models.neon.meta;
     this.aspect=gl.getUniformLocation(this.program,'u_aspect');this.camera=gl.getUniformLocation(this.program,'u_camera');this.lighting=gl.getUniformLocation(this.program,'u_lighting');
     gl.bindVertexArray(null);this.ready=true;
   }
@@ -130,30 +203,52 @@ export class TetraRenderer {
     }
     return {vao,mesh,...ranges};
   }
+  upload(fish) {
+    let i=0;
+    for (const f of fish) {
+      const kind=f.species==='pleco'?1:f.species==='shelter'?2:0;
+      const pose=kind?f.orientation:[f.yaw,f.pitch,f.roll,f.phase];
+      this.instances.set([f.x,f.y,f.z,f.length/this.models[f.species].meta.length,...pose,f.tail,kind===1?(f.cover||0):f.bend,kind?f.phase:f.panic,kind],i); i+=12;
+    }
+    const gl=this.gl; gl.bindBuffer(gl.ARRAY_BUFFER,this.buffer);gl.bufferSubData(gl.ARRAY_BUFFER,0,this.instances.subarray(0,i));
+  }
+  instanceOffset(index) {
+    const gl=this.gl; gl.bindBuffer(gl.ARRAY_BUFFER,this.buffer);
+    this.attributes.forEach((attribute,i) => gl.vertexAttribPointer(attribute,4,gl.FLOAT,false,48,index*48+i*16));
+  }
   draw(sim, lighting) {
     if (!this.ready) return;
-    const gl=this.gl;
-    // Sort instances, not simulation state. Fin membranes blend back-to-front; opaque
-    // meshes use a depth buffer, so overlaps and turns are genuinely three-dimensional.
-    const fish=[...sim.fish].sort((a,b)=>a.z-b.z);
-    let i=0;
-    for(const f of fish){
-      this.instances.set([f.x,f.y,f.z,f.length/this.meta.length,f.yaw,f.pitch,f.roll,f.phase,f.tail,f.bend,f.panic,0],i);i+=12;
-    }
-    const geometry=sim.settings.quality==='high'?this.full:this.lod;
-    this.drawnVertices=geometry.opaqueVertices+geometry.finVertices;
-    gl.useProgram(this.program);gl.bindVertexArray(geometry.vao);gl.bindBuffer(gl.ARRAY_BUFFER,this.buffer);gl.bufferSubData(gl.ARRAY_BUFFER,0,this.instances.subarray(0,i));
+    const gl=this.gl, quality=sim.settings.quality==='high'?'full':'lod';
+    const allFish=[...sim.fish,...(sim.plecos||[]),...(sim.shelters||[])];
+    gl.useProgram(this.program);
     gl.uniform1f(this.aspect,sim.aspect);gl.uniform1f(this.camera,CAMERA_DISTANCE);gl.uniform1f(this.lighting,lighting);
     gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.depthMask(true);gl.disable(gl.BLEND);gl.disable(gl.CULL_FACE);
-    gl.drawArraysInstanced(gl.TRIANGLES,0,geometry.opaqueVertices,fish.length);
+    this.drawnVertices=0;
+    // All opaque bodies go first, irrespective of species.
+    for (const [id,model] of Object.entries(this.models)) {
+      const fish=allFish.filter(f=>f.species===id); if(!fish.length)continue;
+      const geometry=model[quality];this.drawnVertices+=geometry.opaqueVertices+geometry.finVertices;
+      gl.bindVertexArray(geometry.vao);this.upload(fish);this.instanceOffset(0);
+      gl.drawArraysInstanced(gl.TRIANGLES,0,geometry.opaqueVertices,fish.length);
+    }
     gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);gl.depthMask(false);
-    gl.drawArraysInstanced(gl.TRIANGLES,geometry.opaqueVertices,geometry.finVertices,fish.length);
+    // Transparent fins must be depth sorted ACROSS species. Adjacent fish of the same
+    // species share an instanced draw; changing the attribute offset keeps that order.
+    const fish=allFish.filter(f=>f.species!=='shelter').sort((a,b)=>a.z-b.z);this.upload(fish);
+    for (let start=0;start<fish.length;) {
+      const id=fish[start].species;let end=start+1;
+      while(end<fish.length&&fish[end].species===id)end++;
+      const geometry=this.models[id][quality];gl.bindVertexArray(geometry.vao);this.instanceOffset(start);
+      gl.drawArraysInstanced(gl.TRIANGLES,geometry.opaqueVertices,geometry.finVertices,end-start);start=end;
+    }
     gl.depthMask(true);gl.disable(gl.DEPTH_TEST);
   }
   dispose() {
     const gl=this.gl;
     if(this.program)gl.deleteProgram(this.program);
-    for(const geometry of [this.full,this.lod])if(geometry){gl.deleteVertexArray(geometry.vao);gl.deleteBuffer(geometry.mesh);}
+    for(const model of Object.values(this.models||{}))for(const geometry of [model.full,model.lod]) {
+      gl.deleteVertexArray(geometry.vao);gl.deleteBuffer(geometry.mesh);
+    }
     if(this.buffer)gl.deleteBuffer(this.buffer);
     this.ready=false;
   }

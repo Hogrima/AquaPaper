@@ -67,6 +67,18 @@ try {
             }
         }
         # $root is absolute, has the required leaf name, no linked ancestors, and a matching marker.
+        # Remove only this installed copy's startup command; preserve other portable copies.
+        $runPath = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
+        $startupCommand = $null
+        $runKey = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Software\Microsoft\Windows\CurrentVersion\Run')
+        if ($null -ne $runKey) {
+            try { $startupCommand = $runKey.GetValue('AquaPaper', $null) }
+            finally { $runKey.Dispose() }
+        }
+        $ownedCommand = '"' + (Join-Path $root 'AquaPaper.exe') + '" --startup --wallpaper'
+        if ($startupCommand -eq $ownedCommand) {
+            Remove-ItemProperty -LiteralPath $runPath -Name 'AquaPaper' -ErrorAction Stop
+        }
         Remove-Item -LiteralPath $root -Recurse -Force
         Say 'AquaPaper를 제거했습니다. 수족관 설정은 그대로 보관됩니다.' 'AquaPaper was removed. Aquarium preferences were preserved.'
         exit 0

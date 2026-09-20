@@ -1,5 +1,7 @@
 # AquaPaper
 
+**v1.3.0:** Windows 자동 시작, 탭형 설정, Blender 러미노즈·플레코 추가·제거 기능을 포함합니다. [릴리즈 안내 / release guide](docs/NEXT-VERSION.md) · [플레코 피부·행동 / Pleco skin and behavior](docs/PLECO.md).
+
 **커서에 반응하는 나만의 수족관 바탕화면 · An interactive aquarium wallpaper for Windows**
 
 [한국어 설명서](README.ko.md) · [English documentation](README.en.md) · [최신 버전 다운로드 / Download](https://github.com/Hogrima/AquaPaper/releases/latest)

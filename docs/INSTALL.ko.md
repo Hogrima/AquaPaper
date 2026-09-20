@@ -1,5 +1,7 @@
 # AquaPaper 간편 설치
 
+v1.3.0의 자동 실행은 **환경 설정 → 일반 → Windows 시작 시 자동 적용**에서 켭니다. 자세한 사항은 [릴리즈 안내](NEXT-VERSION.md)를 보세요.
+
 [English](INSTALL.en.md) · [전체 사용 설명서](../README.ko.md)
 
 1. [최신 릴리스](https://github.com/Hogrima/AquaPaper/releases/latest)에서 **AquaPaper-Windows-x64.zip**을 받습니다.

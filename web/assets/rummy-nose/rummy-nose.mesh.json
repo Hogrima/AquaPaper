@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "generator": "Blender 5.2.2 LTS",
+  "stride": 11,
+  "opaqueVertices": 21732,
+  "finVertices": 7134,
+  "length": 2.16,
+  "coordinates": "+X head, +Y dorsal, +Z lateral",
+  "binary": "rummy-nose.mesh.bin",
+  "species": "Petitella bleheri",
+  "originalAsset": true,
+  "lod": {
+    "opaqueVertices": 7170,
+    "finVertices": 4524,
+    "binary": "rummy-nose.lod.bin"
+  }
+}

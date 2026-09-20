@@ -12,7 +12,7 @@ internal static class Program
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
         using var mutex = new Mutex(true, "Local\\AquaPaper-v1", out bool first);
-        if (!first) { MessageBox.Show("AquaPaper가 이미 실행 중입니다. 작업 표시줄의 알림 영역에서 물고기 아이콘을 더블 클릭하세요.", "AquaPaper"); return; }
+        if (!first) { if (args.Contains("--startup")) return; MessageBox.Show("AquaPaper가 이미 실행 중입니다. 작업 표시줄의 알림 영역에서 물고기 아이콘을 더블 클릭하세요.", "AquaPaper"); return; }
         Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException);
         Application.ThreadException += (_, e) => { AppLog.Write(e.Exception.ToString()); MessageBox.Show(e.Exception.Message, "AquaPaper"); };
         using var app = new AquariumApp(args);

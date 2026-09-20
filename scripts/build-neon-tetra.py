@@ -1,18 +1,22 @@
 """Build the original AquaPaper tetra in Blender. No downloaded meshes/textures.
-blender --background --python scripts/build-neon-tetra.py
+blender --background --python-exit-code 1 --python scripts/build-neon-tetra.py [-- --rummy-nose]
 Coordinates in Blender: +X nose, +Z dorsal; runtime: +X nose, +Y dorsal.
 """
 import bpy
 import math
 import json
 import struct
+import sys
 from pathlib import Path
-from mathutils import Vector
+from mathutils import Vector, Matrix
 
 ROOT = Path(__file__).resolve().parents[1]
-ASSETS = ROOT / 'web/assets/neon-tetra'
+RUMMY = '--rummy-nose' in sys.argv
+SLUG = 'rummy-nose' if RUMMY else 'neon-tetra'
+SPECIES = 'Petitella bleheri' if RUMMY else 'Paracheirodon innesi'
+ASSETS = ROOT / 'web/assets' / SLUG
 SOURCE = ROOT / 'assets-source'
-ART = ROOT / 'artifacts/tetra'
+ART = ROOT / 'artifacts' / ('rummy-nose' if RUMMY else 'tetra')
 for folder in (ASSETS, SOURCE, ART):
     folder.mkdir(parents=True, exist_ok=True)
 bpy.ops.object.select_all(action='SELECT')
@@ -49,9 +53,9 @@ bump.inputs['Distance'].default_value=.004
 skin.node_tree.links.new(noise.outputs['Fac'],bump.inputs['Height'])
 skin.node_tree.links.new(bump.outputs['Normal'],next(n for n in skin.node_tree.nodes if n.type=='BSDF_PRINCIPLED').inputs['Normal'])
 finmat = material('Fin membrane', (.20,.32,.38), .12, .36, .27, True)
-raymat = material('Fin rays', (.23,.34,.39), .23, .32, .34)
+raymat = material('Fin rays', (.23,.34,.39), .23, .32, .34, vertex=RUMMY)
 eye = material('Obsidian eye', (.003,.006,.009), .12, .08)
-iris = material('Blue silver iris', (.015,.34,.50), .7, .2)
+iris = material('Silver iris' if RUMMY else 'Blue silver iris', (.34,.40,.30) if RUMMY else (.015,.34,.50), .7, .2)
 gill = material('Operculum and mouth', (.08,.15,.18), .4, .3)
 objects = []
 
@@ -61,6 +65,13 @@ def smooth(a, b, x):
 
 def skin_color(p):
     x,y,z = p
+    if RUMMY:
+        dorsal = smooth(.025,.20,z)
+        color = [a*(1-dorsal)+b*dorsal for a,b in zip((.42,.47,.43),(.055,.10,.075))]
+        red = smooth(.32,.49,x)
+        color = [a*(1-red)+b*red for a,b in zip(color,(.62,.012,.025))]
+        scale = 1 + .035*math.sin(x*115+math.sin(z*95)*1.2)*math.sin(z*95)
+        return (*[c*scale for c in color],1)
     dorsal = smooth(.035,.20,z)
     color = [a*(1-dorsal)+b*dorsal for a,b in zip((.30,.39,.43),(.025,.055,.085))]
     # Red only on the posterior ventral flank: P. innesi, not a cardinal tetra.
@@ -120,7 +131,7 @@ for i in range(RINGS-1):
         a=i*SIDES+j; b=i*SIDES+(j+1)%SIDES
         faces.append((a,b,b+SIDES,a+SIDES))
 faces.extend([tuple(reversed(range(SIDES))),tuple((RINGS-1)*SIDES+j for j in range(SIDES))])
-body=mesh_obj('Neon tetra body',verts,faces,skin,0,skin_color)
+body=mesh_obj('Rummy-nose body' if RUMMY else 'Neon tetra body',verts,faces,skin,0,skin_color)
 
 def line(name, points, radius, mat, kind, sides=5):
     # Tiny mesh tubes rather than expensive per-fish curve objects in the runtime.
@@ -141,7 +152,25 @@ def line(name, points, radius, mat, kind, sides=5):
             f.append((a,b,b+sides,a+sides))
     return mesh_obj(name,v,f,mat,kind)
 
+def tail_color(p):
+    # Three black bars separated by pale bands across the forked caudal fin.
+    black = abs(p.z) < .045 or .17 < abs(p.z) < .245
+    return (.006,.010,.008,.94) if black else (.66,.72,.68,.72)
+
 def fin(name, root, edge, rays=10):
+    if RUMMY and name == 'Forked caudal fin':
+        v=[]; f=[]; steps=12
+        for k in range(rays+1):
+            u=k/rays*(len(edge)-1); n=min(len(edge)-2,int(u)); t=u-n
+            tip=tuple(edge[n][d]*(1-t)+edge[n+1][d]*t for d in range(3))
+            for j in range(steps+1):
+                q=j/steps
+                v.append(tuple(root[d]*(1-q)+tip[d]*q for d in range(3)))
+        for k in range(rays):
+            for j in range(steps):
+                a=k*(steps+1)+j; b=a+steps+1
+                f.append((a,b,b+1,a+1))
+        return mesh_obj(name,v,f,finmat,1,tail_color)
     # Radially segmented thin membrane; bent slightly out of plane.
     v=[root]; f=[]
     for k in range(rays+1):
@@ -182,6 +211,11 @@ for side in (-1,1):
     line('Gill cover '+str(side),pts,.0028,gill,0)
     line('Small terminal mouth '+str(side),[(.794,side*.009,.015),(.779,side*.038,.005),(.746,side*.055,-.008)],.0024,gill,0)
 
+if RUMMY:
+    transform=Matrix.Diagonal((1.08,.90,.82,1.0))
+    for obj in objects:
+        obj.matrix_world=transform@obj.matrix_world
+
 # Export evaluated Blender mesh geometry in a deliberately small, documented runtime format.
 # Each vertex: position.xyz, normal.xyz, linear RGBA, surface_kind (11 float32 values).
 def export_runtime(lod=False):
@@ -210,16 +244,16 @@ def export_runtime(lod=False):
         if evaluated:evaluated.to_mesh_clear()
         if modifier:obj.modifiers.remove(modifier)
     data=opaque+transparent
-    name='neon-tetra.lod.bin' if lod else 'neon-tetra.mesh.bin'
+    name=SLUG+('.lod.bin' if lod else '.mesh.bin')
     (ASSETS/name).write_bytes(struct.pack('<%sf'%len(data),*data))
     return len(opaque)//11,len(transparent)//11
 opaque_count,fin_count=export_runtime()
 lod_opaque,lod_fin=export_runtime(True)
 meta={'version':1,'generator':'Blender '+bpy.app.version_string,'stride':11,'opaqueVertices':opaque_count,
-      'finVertices':fin_count,'length':2.0,'coordinates':'+X head, +Y dorsal, +Z lateral',
-      'binary':'neon-tetra.mesh.bin','species':'Paracheirodon innesi','originalAsset':True,
-      'lod':{'opaqueVertices':lod_opaque,'finVertices':lod_fin,'binary':'neon-tetra.lod.bin'}}
-(ASSETS/'neon-tetra.mesh.json').write_text(json.dumps(meta,indent=2),encoding='utf-8')
+      'finVertices':fin_count,'length':2.16 if RUMMY else 2.0,'coordinates':'+X head, +Y dorsal, +Z lateral',
+      'binary':SLUG+'.mesh.bin','species':SPECIES,'originalAsset':True,
+      'lod':{'opaqueVertices':lod_opaque,'finVertices':lod_fin,'binary':SLUG+'.lod.bin'}}
+(ASSETS/(SLUG+'.mesh.json')).write_text(json.dumps(meta,indent=2),encoding='utf-8')
 
 # An editable demonstration swim loop in the .blend, separate from the real-time simulation.
 for obj in objects:
@@ -239,7 +273,7 @@ scene.frame_start=1;scene.frame_end=24;scene.render.fps=30;scene.frame_set(1)
 bpy.ops.object.select_all(action='DESELECT')
 for obj in objects:obj.select_set(True)
 bpy.context.view_layer.objects.active=body
-bpy.ops.export_scene.gltf(filepath=str(ASSETS/'neon-tetra.glb'),use_selection=True,export_format='GLB',export_animations=False,export_morph=False)
+bpy.ops.export_scene.gltf(filepath=str(ASSETS/(SLUG+'.glb')),use_selection=True,export_format='GLB',export_animations=False,export_morph=False)
 
 world=bpy.data.worlds.new('Deep green studio')
 scene.world=world;world.use_nodes=True
@@ -263,7 +297,7 @@ scene.cycles.use_denoising=True
 scene.render.resolution_x=1400;scene.render.resolution_y=900;scene.render.resolution_percentage=100
 scene.render.image_settings.file_format='PNG';scene.render.film_transparent=False
 scene.view_settings.view_transform='AgX'
-scene.render.filepath=str(ART/'blender-neon-tetra.png')
-bpy.ops.wm.save_as_mainfile(filepath=str(SOURCE/'neon-tetra.blend'))
+scene.render.filepath=str(ART/('blender-'+SLUG+'.png'))
+bpy.ops.wm.save_as_mainfile(filepath=str(SOURCE/(SLUG+'.blend')))
 bpy.ops.render.render(write_still=True)
 print('AQUAPAPER_MODEL',json.dumps(meta))

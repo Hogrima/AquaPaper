@@ -7,6 +7,7 @@
   <meta name="color-scheme" content="dark">
   <title data-i18n="documentTitle">AquaPaper · 살아 있는 수족관</title>
   <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="settings.css">
 </head>
 <body>
   <canvas id="aquarium" data-i18n-attr="aria-label:canvasLabel" aria-label="커서에 반응하는 물고기가 헤엄치는 수중 정원"></canvas>
@@ -31,6 +32,21 @@
   </footer>
   <aside id="settings" class="settings" data-i18n-attr="aria-label:settingsAria" aria-label="환경 설정" hidden>
     <div class="panel-header"><div><span class="eyebrow" data-i18n="makeItYours">나만의 설정</span><h2 data-i18n="myAquarium">나만의 수족관</h2></div><button id="close-settings" class="icon-button" data-i18n-attr="aria-label:closeSettings" aria-label="설정 닫기">×</button></div>
+<div class="settings-tabs" role="tablist" data-i18n-attr="aria-label:settingsCategories"><button id="tab-fish" role="tab" aria-controls="panel-fish" aria-selected="true" tabindex="0" data-i18n="tabFish"></button><button id="tab-tank" role="tab" aria-controls="panel-tank" aria-selected="false" tabindex="-1" data-i18n="tabTank"></button><button id="tab-display" role="tab" aria-controls="panel-display" aria-selected="false" tabindex="-1" data-i18n="tabDisplay"></button><button id="tab-general" role="tab" aria-controls="panel-general" aria-selected="false" tabindex="-1" data-i18n="tabGeneral"></button></div>
+<div class="settings-content">
+<section id="panel-fish" role="tabpanel" aria-labelledby="tab-fish" tabindex="0">
+    <div class="setting-group fish-mode-group"><label data-i18n="fishAppearance">물고기 표현</label><div class="segmented" id="fishMode" role="group" data-i18n-attr="aria-label:fishAppearance" aria-label="물고기 표현"><button data-value="classic" data-i18n="classicMode" aria-pressed="false">기존 모드</button><button data-value="tetra3d" data-i18n="tetra3d" class="selected" aria-pressed="true">3D 네온테트라</button></div><p id="fish-mode-description" class="display-description">입체적인 몸체와 지느러미 · 가속과 활주를 반복하는 군집 유영</p></div>
+    <div class="setting-group"><label for="fish-count"><span data-i18n="fishCountLabel">물고기 수</span> <output id="fish-value">72 마리</output></label><input id="fish-count" type="range" min="12" max="160" step="1" value="72"><div class="range-ends"><span data-i18n="sparse">한적하게</span><span data-i18n="lush">풍성하게</span></div></div>
+<div id="species-list"><p class="section-note" data-i18n="speciesHelp"></p><article class="species-card" id="neon-card"><div class="species-title"><span class="fish-swatch neon" aria-hidden="true"></span><div><h3 data-i18n="neonName"></h3><p><i>Paracheirodon innesi</i></p></div><button id="neon-toggle" type="button"></button></div><div class="species-number"><label for="neon-count" data-i18n="schoolCount"></label><input id="neon-count" type="number" min="6" max="160" step="1" inputmode="numeric"></div></article><article class="species-card" id="rummy-card"><div class="species-title"><span class="fish-swatch rummy" aria-hidden="true"></span><div><h3 data-i18n="rummyName"></h3><p><i>Petitella bleheri</i></p></div><button id="rummy-toggle" type="button"></button></div><div class="species-number"><label for="rummy-count" data-i18n="schoolCount"></label><input id="rummy-count" type="number" min="6" max="160" step="1" inputmode="numeric"></div></article></div>
+<div id="pleco-section"><p class="section-note" data-i18n="plecoHelp"></p><article class="species-card" id="pleco-card"><div class="species-title"><span class="fish-swatch pleco" aria-hidden="true"></span><div><h3 data-i18n="plecoName"></h3><p><i>Pterygoplichthys pardalis</i></p></div><button id="pleco-toggle" type="button"></button></div><div class="species-number"><label for="pleco-count" data-i18n="plecoCountLabel"></label><input id="pleco-count" type="number" min="1" max="8" step="1" inputmode="numeric"></div></article><p class="section-note pleco-note" data-i18n="plecoDescription"></p></div>
+</section>
+<section id="panel-tank" role="tabpanel" aria-labelledby="tab-tank" tabindex="0" hidden>
+    <div class="setting-group"><label data-i18n="underwaterLighting">수중 조명</label><div class="segmented" id="lighting"><button data-value="day" data-i18n="daylight" class="selected" aria-pressed="true">자연광</button><button data-value="dusk" data-i18n="dusk" aria-pressed="false">노을</button><button data-value="night" data-i18n="moonlight" aria-pressed="false">달빛</button></div></div>
+    <div class="setting-group"><label for="activity"><span data-i18n="swimmingSpeed">유영 속도</span> <output id="activity-value">차분하게</output></label><input id="activity" type="range" min="30" max="130" step="5" value="65"></div>
+    <div class="setting-row"><div><label for="interaction" data-i18n="cursorInteraction">커서 반응</label><p data-i18n="cursorInteractionDescription">가까이 다가가면 살며시 흩어져요</p></div><label class="switch"><input id="interaction" type="checkbox" checked><span></span></label></div>
+    <div class="setting-row"><div><label for="particles" data-i18n="particles">기포와 부유물</label><p data-i18n="particlesDescription">빛을 따라 느리게 떠오르는 입자</p></div><label class="switch"><input id="particles" type="checkbox" checked><span></span></label></div>
+</section>
+<section id="panel-display" role="tabpanel" aria-labelledby="tab-display" tabindex="0" hidden>
     <section id="display-section" class="display-section" data-i18n-attr="aria-label:monitorLayout" aria-label="모니터 배치" hidden>
       <div class="display-heading"><h3 data-i18n="monitorLayout">모니터 배치</h3><span id="monitor-count"></span></div>
       <div class="segmented" id="display-mode" role="group" data-i18n-attr="aria-label:displayModes" aria-label="표시 방식"><button data-value="single" data-i18n="oneDisplay" aria-pressed="true" class="selected">한 화면만</button><button data-value="span" data-i18n="spanAll" aria-pressed="false">모두 이어서</button><button data-value="separate" data-i18n="separateDisplays" aria-pressed="false">화면마다 따로</button></div>
@@ -39,14 +55,14 @@
       <div id="monitor-select-row"><label for="monitor-select" data-i18n="displayOn">표시할 화면</label><select id="monitor-select" data-i18n-attr="aria-label:displayMonitorAria" aria-label="표시할 모니터"></select></div>
       <p id="display-status" class="display-status" role="status"></p>
     </section>
-    <div class="setting-group"><label data-i18n="language">언어</label><div class="segmented" id="language" role="group" data-i18n-attr="aria-label:language" aria-label="언어"><button data-value="ko" data-i18n="korean" aria-pressed="true">한국어</button><button data-value="en" data-i18n="english" aria-pressed="false">English</button></div></div>
-    <div class="setting-group fish-mode-group"><label data-i18n="fishAppearance">물고기 표현</label><div class="segmented" id="fishMode" role="group" data-i18n-attr="aria-label:fishAppearance" aria-label="물고기 표현"><button data-value="classic" data-i18n="classicMode" aria-pressed="false">기존 모드</button><button data-value="tetra3d" data-i18n="tetra3d" class="selected" aria-pressed="true">3D 네온테트라</button></div><p id="fish-mode-description" class="display-description">입체적인 몸체와 지느러미 · 가속과 활주를 반복하는 군집 유영</p></div>
-    <div class="setting-group"><label for="fish-count"><span data-i18n="fishCountLabel">물고기 수</span> <output id="fish-value">72 마리</output></label><input id="fish-count" type="range" min="12" max="160" step="4" value="72"><div class="range-ends"><span data-i18n="sparse">한적하게</span><span data-i18n="lush">풍성하게</span></div></div>
-    <div class="setting-group"><label data-i18n="underwaterLighting">수중 조명</label><div class="segmented" id="lighting"><button data-value="day" data-i18n="daylight" class="selected" aria-pressed="true">자연광</button><button data-value="dusk" data-i18n="dusk" aria-pressed="false">노을</button><button data-value="night" data-i18n="moonlight" aria-pressed="false">달빛</button></div></div>
-    <div class="setting-group"><label for="activity"><span data-i18n="swimmingSpeed">유영 속도</span> <output id="activity-value">차분하게</output></label><input id="activity" type="range" min="30" max="130" step="5" value="65"></div>
-    <div class="setting-row"><div><label for="interaction" data-i18n="cursorInteraction">커서 반응</label><p data-i18n="cursorInteractionDescription">가까이 다가가면 살며시 흩어져요</p></div><label class="switch"><input id="interaction" type="checkbox" checked><span></span></label></div>
-    <div class="setting-row"><div><label for="particles" data-i18n="particles">기포와 부유물</label><p data-i18n="particlesDescription">빛을 따라 느리게 떠오르는 입자</p></div><label class="switch"><input id="particles" type="checkbox" checked><span></span></label></div>
+<p id="display-native-note" class="display-description" data-i18n="wallpaperNativeOnly"></p>
     <div class="setting-group"><label data-i18n="renderingQuality">렌더링 품질</label><div class="segmented" id="quality"><button data-value="eco" data-i18n="eco" aria-pressed="false">절전 · 30</button><button data-value="balanced" data-i18n="balanced" class="selected" aria-pressed="true">균형 · 60</button><button data-value="high" data-i18n="high" aria-pressed="false">선명 · 60</button></div></div>
+</section>
+<section id="panel-general" role="tabpanel" aria-labelledby="tab-general" tabindex="0" hidden>
+    <div class="setting-group"><label data-i18n="language">언어</label><div class="segmented" id="language" role="group" data-i18n-attr="aria-label:language" aria-label="언어"><button data-value="ko" data-i18n="korean" aria-pressed="true">한국어</button><button data-value="en" data-i18n="english" aria-pressed="false">English</button></div></div>
+<div class="setting-row startup-row"><div><label for="start-with-windows" data-i18n="startWithWindows"></label><p data-i18n="startupDescription"></p></div><label class="switch"><input id="start-with-windows" type="checkbox" disabled><span></span></label></div><p id="startup-status" class="display-description" role="status"></p><p class="section-note" data-i18n="startupPortable"></p>
+</section>
+</div>
     <div class="panel-footer"><span data-i18n="autosave">변경 내용은 자동으로 저장됩니다</span><button id="reset" data-i18n="reset">초기화</button></div>
   </aside>
   <div id="toast" role="status" aria-live="polite"></div>

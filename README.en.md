@@ -1,5 +1,7 @@
 # AquaPaper
 
+**v1.3.0:** Includes Windows startup, larger tabbed settings, and original Blender rummy-nose tetra and pleco models with species controls. [Release guide](docs/NEXT-VERSION.md) · [Detailed pleco skin, attachment and shelter behavior](docs/PLECO.md). Plecos are limited to eight across the desktop.
+
 [한국어](README.ko.md) · [English](README.en.md) · [Download / Releases](https://github.com/Hogrima/AquaPaper/releases/latest)
 
 A calm, interactive aquarium wallpaper for Windows. Schools of silver-and-red neon tetras react to your mouse, scatter when you approach, and gradually regroup. A forest-green aquascape, driftwood, underwater plants, moving light and floating particles create the scene. The default fish appearance is the Blender-based **3D neon tetra**; the original mode remains available.

@@ -1,3 +1,5 @@
+import { PlecoColony } from './pleco.js';
+import { population, SPECIES } from './population.js';
 import { normalizeSettings } from './simulation.js';
 
 const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -18,33 +20,45 @@ export class TetraSimulation {
     this.random = random;
     this.time = 0;
     this.fish = [];
+    this.nextId = 0;
     this.cursor = { x: -10, y: -10, active: false, speed: 0 };
     this.forces = new Float32Array(160 * 3);
     this.nextPanic = new Float32Array(160);
     this.ids = new Int16Array(6);
     this.distances = new Float64Array(6);
+    this.bottomFish = new PlecoColony(aspect, this.settings, random);
     this.setCount(this.settings.count);
   }
+  get plecos() { return this.bottomFish.fish; }
+  get shelters() { return this.bottomFish.homes; }
   setCount(count) {
     count = clamp(Math.round(Number.isFinite(count) ? count : 72), 12, 160);
     this.settings.count = count;
-    this.fish.length = Math.min(count, this.fish.length);
+    this.bottomFish.setCount(this.settings.plecoCount);
+    const counts = population(this.settings);
+    this.settings.rummyCount = counts.rummy;
+    const retained = { neon: 0, rummy: 0 };
+    this.fish = this.fish.filter(f => ++retained[f.species] <= counts[f.species]);
     const r = this.random, groups = Math.max(1, Math.min(3, Math.floor(count / 24)));
-    while (this.fish.length < count) {
-      const id = this.fish.length, group = id % groups, yaw = group % 2 ? Math.PI - .25 : .25;
-      const length = .057 + (r() - .5) * .014;
-      this.fish.push({ id, x: this.aspect * (.22 + .56 * (group + .5) / groups) + (r() - .5) * .36,
+    for (const species of SPECIES) {
+    let remaining = counts[species] - this.fish.filter(f => f.species === species).length;
+    while (remaining-- > 0) {
+      const id = this.nextId++, group = species === 'rummy' ? 0 : id % groups, yaw = group % 2 ? Math.PI - .25 : .25;
+      const length = (species === 'rummy' ? .073 : .057) + (r() - .5) * .014;
+      this.fish.push({ id, species, x: this.aspect * (.22 + .56 * (group + .5) / groups) + (r() - .5) * .36,
         y: .42 + (r() - .5) * .24, z: (r() - .5) * .42,
         vx: Math.cos(yaw) * .06, vy: (r() - .5) * .008, vz: Math.sin(yaw) * .06,
         yaw, pitch: 0, roll: 0, phase: r() * TAU, length, panic: 0, tail: .5, bend: 0,
         burst: r() * .65, burstDuration: .15 + r() * .07, cycle: .52 + r() * .32,
         noise: r() * TAU, personality: .85 + r() * .3, thrust: false });
     }
+    }
   }
   resize(aspect) {
     if (!Number.isFinite(aspect) || aspect <= 0) return;
     for (const f of this.fish) f.x *= aspect / this.aspect;
     this.aspect = aspect;
+    this.bottomFish.resize(aspect);
   }
   setCursor(x, y, active = true, speed = 0) {
     this.cursor = { x, y, active: active && Number.isFinite(x + y), speed: clamp(Number.isFinite(speed) ? speed : 0, 0, 4) };
@@ -56,6 +70,7 @@ export class TetraSimulation {
   }
   integrate(dt) {
     this.time += dt;
+    this.bottomFish.step(dt, this.settings, this.cursor);
     const fish = this.fish, aspect = this.aspect, pace = this.settings.activity / 65;
     const cursor = this.cursor, ids = this.ids, distances = this.distances;
     // Every fish reads the same position/velocity/alarm snapshot. There is no permanent leader
@@ -67,7 +82,7 @@ export class TetraSimulation {
       for (let j = 0; j < fish.length; j++) {
         if (i === j) continue;
         const o = fish[j], dx = o.x - f.x, dy = o.y - f.y, dz = o.z - f.z, d2 = dx*dx + dy*dy + dz*dz;
-        if (d2 < closestD) { closestD = d2; closest = j; }
+        if (o.species === f.species && d2 < closestD) { closestD = d2; closest = j; }
         const d = Math.sqrt(d2), bubble = (f.length + o.length) * .50;
         if (d < bubble) {
           // Lateral-line-like short-range repulsion also works in the rear blind sector.
@@ -77,11 +92,16 @@ export class TetraSimulation {
           sz -= dz * inv * strength;
         }
         const visible = d < .36 && (dx*f.vx + dy*f.vy + dz*f.vz) / (Math.max(d, .0001)*speed) > -.86;
-        if (visible && d2 < distances[5]) {
+        if (o.species === f.species && visible && d2 < distances[5]) {
           let k = 5;
           while (k > 0 && d2 < distances[k-1]) { ids[k] = ids[k-1]; distances[k] = distances[k-1]; k--; }
           ids[k] = j; distances[k] = d2;
         }
+      }
+      for (const p of this.plecos) {
+        if (p.state === 'hide') continue;
+        const dx=f.x-p.x,dy=f.y-p.y,dz=f.z-p.z,d=Math.hypot(dx,dy,dz),radius=p.length*.32;
+        if(d<radius){const force=(1-d/radius)*.12/Math.max(.001,d);sx+=dx*force;sy+=dy*force;sz+=dz*force;}
       }
       let fx = sx, fy = sy, fz = sz, cx = 0, cy = 0, cz = 0, ax = 0, ay = 0, az = 0, weight = 0, alarm = 0;
       for (let k = 0; k < 6 && ids[k] >= 0; k++) {
@@ -93,7 +113,7 @@ export class TetraSimulation {
       }
       const social = f.panic > .5 ? .28 : 1;
       if (weight) {
-        const cohesion = .43 * social, alignment = 1.1 * social;
+        const cohesion = (f.species === 'rummy' ? .52 : .43) * social, alignment = (f.species === 'rummy' ? 1.35 : 1.1) * social;
         fx += (cx * cohesion + ax * alignment) / weight;
         fy += (cy * cohesion + ay * alignment) / weight;
         fz += (cz * cohesion + az * alignment) / weight;

@@ -27,6 +27,17 @@ internal sealed partial class AquariumApp
         var folder = folderArg == null ? Path.Combine(AppContext.BaseDirectory, "smoke-test") : Path.GetFullPath(folderArg[9..]);
         Directory.CreateDirectory(folder);
         try {
+            if (args.Contains("--mixed-species")) {
+                var mixed = settings.Deserialize<Dictionary<string, JsonElement>>()!;
+                mixed["rummyCount"] = JsonSerializer.SerializeToElement(24);
+                SaveSettings(JsonSerializer.SerializeToElement(mixed));
+            }
+            if (args.Contains("--pleco-test")) {
+                var configured = settings.Deserialize<Dictionary<string, JsonElement>>()!;
+                configured["plecoCount"] = JsonSerializer.SerializeToElement(999);
+                SaveSettings(JsonSerializer.SerializeToElement(configured));
+                if (settings.GetProperty("plecoCount").GetInt32() != 8) throw new InvalidOperationException("Native pleco limit was bypassed.");
+            }
             await Task.Delay(4000);
             var before = JsonDocument.Parse(await window.Diagnostics()).RootElement.Clone();
             object? modeSwitch = null;

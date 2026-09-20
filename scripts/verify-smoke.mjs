@@ -4,6 +4,19 @@ const report = JSON.parse(await readFile(process.argv[2] || new URL('../artifact
 const is3D = report.preview.settings.fishMode === 'tetra3d';
 function verify3D(d, label) {
   assert.equal(d.settings.fishMode, 'tetra3d', `${label}: 3D mode fell back unexpectedly`);
+  if (d.tetra.population) {
+    const expectedPlecos = d.plecoAllocation ?? d.settings.plecoCount ?? 0;
+    assert.equal(d.tetra.population.pleco || 0, expectedPlecos, `${label}: pleco allocation mismatch`);
+    assert.ok(expectedPlecos <= 8);
+    assert.equal(d.fish, d.settings.count + expectedPlecos);
+    for (const p of d.tetra.plecos || []) {
+      assert.ok(p.centimeters >= 20 && p.centimeters <= 28);
+      assert.ok(Number.isFinite(p.x+p.y+p.z));
+      assert.ok(Math.abs(Math.hypot(...p.orientation)-1)<1e-5);
+    }
+    assert.equal(d.tetra.population.rummy || 0, d.settings.rummyCount || 0, `${label}: rummy school count mismatch`);
+    assert.equal(d.tetra.population.neon || 0, d.settings.count - (d.settings.rummyCount || 0), `${label}: neon school count mismatch`);
+  }
   assert.ok(d.tetra.ready && !d.tetra.error && d.tetra.vertices > 1000, `${label}: missing Blender mesh`);
   assert.ok(d.tetra.depthRange[1] - d.tetra.depthRange[0] > .01, `${label}: fish have no depth distribution`);
   for (const f of d.tetra.sample) assert.ok(Object.values(f).every(Number.isFinite), `${label}: invalid 3D pose`);
@@ -12,7 +25,7 @@ for (const key of ['preview', 'pausedAt', 'pausedLater', 'wallpaper', 'restored'
   assert.ok(report[key]?.ready, `${key} did not initialize`);
   assert.deepEqual(report[key].errors, [], `${key} reported JavaScript errors`);
   assert.equal(report[key].webglError, 0, `${key} reported a WebGL error`);
-  assert.ok(report[key].fish >= 12 && report[key].fish <= 160);
+  assert.ok(report[key].fish >= 12 && report[key].fish <= 168);
   if (is3D) verify3D(report[key], key);
 }
 assert.ok(report.desktopAttached, 'Wallpaper did not attach to the native desktop parent');
@@ -34,7 +47,7 @@ if (is3D) {
     assert.equal(report.qualityCases.length, 2);
     for (const d of report.qualityCases) {
       verify3D(d, d.settings.quality);
-      assert.equal(d.fish, 160);
+      assert.equal(d.settings.count, 160);
       assert.equal(d.webglError, 0);
       assert.deepEqual(d.errors, []);
       assert.ok(d.fps > 0 && d.fps <= (d.settings.quality === 'eco' ? 31 : 61));
@@ -66,4 +79,10 @@ for (const c of report.cases || []) {
   }
   if (c.pausedAt) assert.deepEqual(c.pausedAt, c.pausedLater, `${c.mode}: not every screen paused`);
   console.log(`${c.mode}: ${c.views.length} view(s), physical bounds, cursor routing, rendering and pause verified.`);
+}
+
+for (const c of report.cases || []) {
+  const total=c.views.reduce((sum,v)=>sum+(v.diagnostics.tetra.population?.pleco||0),0);
+  assert.ok(total<=8, `Global pleco limit exceeded in ${c.mode}`);
+  assert.equal(total,c.views[0].diagnostics.settings.plecoCount||0, `Pleco population lost in ${c.mode}`);
 }

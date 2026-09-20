@@ -1,3 +1,5 @@
+import { settingsControls } from './settings-ui.js';
+import { resizePopulation } from './population.js';
 import { AquariumSimulation, DEFAULTS, normalizeSettings } from './simulation.js';
 import { TetraSimulation } from './simulation3d.js';
 import { AquariumRenderer } from './renderer.js';
@@ -6,7 +8,7 @@ import { translate } from './i18n.js';
 
 const $ = id => document.getElementById(id);
 const host = window.chrome?.webview;
-let monitorCount = 1, displayMode = 'single';
+let monitorCount = 1, displayMode = 'single', plecoAllocation = host ? 0 : null;
 let settings = { ...DEFAULTS };
 try { settings = normalizeSettings(JSON.parse(localStorage.getItem('aquapaper.settings') || '{}')); } catch { /* Recover corrupt/disabled storage. */ }
 const updateDisplays = displayControls(host, () => settings.language);
@@ -15,6 +17,7 @@ let simulations, tetraError = null;
 let lastFrame = 0, lastDraw = 0, frames = 0, fpsStart = 0, animation = 0, lastActivity = performance.now();
 let actualFps = 0, toastTimeout, nativeFullscreen = false, booting = false;
 const errors = [];
+const controls = settingsControls(host, () => settings, applySettings, t);
 window.addEventListener('error', e => errors.push(e.message));
 function send(type, data = {}) { host?.postMessage({ type, ...data }); }
 function toast(text) { $('toast').textContent = text; $('toast').classList.add('visible'); clearTimeout(toastTimeout); toastTimeout = setTimeout(() => $('toast').classList.remove('visible'), 4800); }
@@ -34,7 +37,9 @@ function applyLanguage() {
 }
 function updateUi() {
   applyLanguage();
-  $('fish-count').value = settings.count; $('fish-value').textContent = t('fishCount', { count: settings.count }); $('fish-label').textContent = t('fishCount', { count: settings.count });
+  controls.refresh();
+  $('fish-count').value = settings.count; $('fish-value').textContent = t('fishCount', { count: settings.count }); $('fish-label').textContent = t('fishCount', { count: settings.count + (settings.fishMode === 'tetra3d' ? settings.plecoCount : 0) });
+  document.querySelector('[data-i18n=fishCountLabel]').textContent = t(settings.fishMode === 'tetra3d' ? 'schoolFishCount' : 'fishCountLabel');
   $('activity').value = settings.activity; $('activity-value').textContent = t(settings.activity < 65 ? 'gentle' : settings.activity < 95 ? 'calm' : 'lively');
   $('interaction').checked = settings.interaction; $('particles').checked = settings.particles;
   for (const name of ['language', 'lighting', 'quality', 'fishMode']) for (const b of $(name).querySelectorAll('button')) { const selected = b.dataset.value === settings[name]; b.classList.toggle('selected', selected); b.setAttribute('aria-pressed', String(selected)); }
@@ -51,7 +56,7 @@ function applySettings(value, persist = true) {
   const before = settings; settings = normalizeSettings(value);
   if (tetraError && settings.fishMode === 'tetra3d') settings.fishMode = 'classic';
   if (simulations) {
-    for (const sim of Object.values(simulations)) { sim.settings = { ...settings }; sim.setCount(settings.count); }
+    for (const sim of Object.values(simulations)) { sim.settings = { ...settings, plecoCount: plecoAllocation === null ? settings.plecoCount : Math.min(settings.plecoCount, plecoAllocation) }; sim.setCount(settings.count); }
     const cursor = simulation?.cursor;
     simulation = simulations[settings.fishMode];
     if (cursor) simulation.setCursor(cursor.x, cursor.y, cursor.active, cursor.speed);
@@ -61,7 +66,7 @@ function applySettings(value, persist = true) {
   if (ready) renderer.render(simulation, settings);
   if (persist) { try { localStorage.setItem('aquapaper.settings', JSON.stringify(settings)); } catch {} send('settings', { settings }); }
 }
-function panel(open) { $('settings').hidden = !open; $('settings-toggle').setAttribute('aria-expanded', String(open)); wake(); if (open) { send('displayRefresh'); $('close-settings').focus(); } else $('settings-toggle').focus(); }
+function panel(open) { $('settings').hidden = !open; $('settings-toggle').setAttribute('aria-expanded', String(open)); wake(); if (open) { send('displayRefresh'); send('startupRefresh'); $('close-settings').focus(); } else $('settings-toggle').focus(); }
 function pause(value = !userPaused) { userPaused = value; updateUi(); wake(); if (host) send('pause', { paused: userPaused }); else startLoop(); }
 function startLoop() { if (!animation && ready) { lastFrame = lastDraw = 0; animation = requestAnimationFrame(frame); } }
 function frame(now) {
@@ -92,7 +97,7 @@ $('settings-toggle').addEventListener('click', () => panel($('settings').hidden)
 $('close-settings').addEventListener('click', () => panel(false));
 $('fullscreen').addEventListener('click', fullscreen);
 $('apply').addEventListener('click', () => { if (host) send('wallpaper'); else toast(t('wallpaperNativeOnly')); });
-$('fish-count').addEventListener('input', e => applySettings({ ...settings, count: Number(e.target.value) }));
+$('fish-count').addEventListener('input', e => applySettings(resizePopulation(settings, Number(e.target.value))));
 $('activity').addEventListener('input', e => applySettings({ ...settings, activity: Number(e.target.value) }));
 for (const name of ['interaction', 'particles']) $(name).addEventListener('change', e => applySettings({ ...settings, [name]: e.target.checked }));
 for (const name of ['language', 'lighting', 'quality', 'fishMode']) $(name).addEventListener('click', e => { const b = e.target.closest('button'); if (b && !b.disabled) applySettings({ ...settings, [name]: b.dataset.value }); });
@@ -120,9 +125,10 @@ document.addEventListener('visibilitychange', () => { lastFrame = 0; if (!docume
 window.addEventListener('storage', e => { if (e.key === 'aquapaper.settings' && e.newValue) { try { applySettings(JSON.parse(e.newValue), false); } catch {} } });
 host?.addEventListener('message', e => {
   const m = e.data;
-  if (m.type === 'init') { wallpaper = Boolean(m.wallpaper); monitorCount = wallpaper ? Math.max(1, m.monitorCount || 1) : 1; displayMode = m.displayMode || 'single'; document.body.classList.toggle('wallpaper', wallpaper); if (m.settings) applySettings(m.settings, false); renderer?.resize(settings.quality, monitorCount); userPaused = Boolean(m.paused); updateUi(); }
+  if (m.type === 'init') { plecoAllocation = Number.isInteger(m.plecoAllocation) ? m.plecoAllocation : null; wallpaper = Boolean(m.wallpaper); monitorCount = wallpaper ? Math.max(1, m.monitorCount || 1) : 1; displayMode = m.displayMode || 'single'; document.body.classList.toggle('wallpaper', wallpaper); if (m.settings) applySettings(m.settings, false); renderer?.resize(settings.quality, monitorCount); userPaused = Boolean(m.paused); updateUi(); }
+  if (m.type === 'startup') controls.startup(m);
   if (m.type === 'displays') updateDisplays(m);
-  if (m.type === 'settings') applySettings(m.settings, false);
+  if (m.type === 'settings') { if ('plecoAllocation' in m) plecoAllocation = Number.isInteger(m.plecoAllocation) ? m.plecoAllocation : null; applySettings(m.settings, false); }
   if (m.type === 'cursor' && simulation) simulation.setCursor(m.x * simulation.aspect, m.y, m.active, m.speed || 0);
   if (m.type === 'pause') { userPaused = m.paused; updateUi(); startLoop(); }
   if (m.type === 'suspend') { systemPaused = m.paused; lastFrame = 0; if (!systemPaused) startLoop(); }
@@ -136,7 +142,8 @@ async function boot() {
   try {
     renderer = new AquariumRenderer($('aquarium'));
     tetraError = null;
-    simulations = { classic: new AquariumSimulation(innerWidth / innerHeight, settings), tetra3d: new TetraSimulation(innerWidth / innerHeight, settings) };
+    const initialSettings = { ...settings, plecoCount: plecoAllocation === null ? settings.plecoCount : Math.min(settings.plecoCount, plecoAllocation) };
+    simulations = { classic: new AquariumSimulation(innerWidth / innerHeight, initialSettings), tetra3d: new TetraSimulation(innerWidth / innerHeight, initialSettings) };
     simulation = simulations[settings.fishMode];
     renderer.resize(settings.quality, monitorCount);
     await Promise.all([renderer.load('assets/aquarium.png'), renderer.tetra.load().catch(e => { tetraError = String(e); renderer.tetra.dispose(); })]);
@@ -149,8 +156,9 @@ async function boot() {
 $('aquarium').addEventListener('webglcontextlost', e => { e.preventDefault(); ready = false; cancelAnimationFrame(animation); animation = 0; toast(t('contextRestoring')); });
 $('aquarium').addEventListener('webglcontextrestored', () => boot());
 // Read-only diagnostics consumed by the native smoke test; never exposed to remote content.
-window.aquariumDiagnostics = () => ({ ready, fish: simulation?.fish.length || 0, fps: actualFps, time: simulation?.time || 0, errors: [...errors], settings: { ...settings }, paused: userPaused, systemPaused, wallpaper, monitorCount, displayMode, cursorActive: simulation?.cursor.active, width: renderer?.canvas.width, height: renderer?.canvas.height, webglError: renderer?.gl.getError() ?? -1,
-  tetra: { ready: renderer?.tetra.ready || false, error: tetraError, vertices: renderer?.tetra.drawnVertices || 0,
+window.aquariumDiagnostics = () => ({ ready, fish: (simulation?.fish.length || 0) + (simulation?.plecos?.length || 0), plecoAllocation, fps: actualFps, time: simulation?.time || 0, errors: [...errors], settings: { ...settings }, paused: userPaused, systemPaused, wallpaper, monitorCount, displayMode, cursorActive: simulation?.cursor.active, width: renderer?.canvas.width, height: renderer?.canvas.height, webglError: renderer?.gl.getError() ?? -1,
+  tetra: { population: [...(simulation?.fish || []), ...(simulation?.plecos || [])].reduce((result, f) => { const id = f.species || 'neon'; result[id] = (result[id] || 0) + 1; return result; }, {}), ready: renderer?.tetra.ready || false, error: tetraError, vertices: renderer?.tetra.drawnVertices || 0,
+    plecos: simulation?.plecos?.map(f=>({id:f.id,slot:f.slot,x:f.x,y:f.y,z:f.z,state:f.state,surface:f.surface,centimeters:f.centimeters,orientation:f.orientation,tail:f.tail})) || [],
     depthRange: settings.fishMode === 'tetra3d' ? [Math.min(...simulation.fish.map(f=>f.z)),Math.max(...simulation.fish.map(f=>f.z))] : null,
     sample: settings.fishMode === 'tetra3d' ? simulation.fish.slice(0,6).map(f=>({x:f.x,y:f.y,z:f.z,yaw:f.yaw,pitch:f.pitch,tail:f.tail,panic:f.panic})) : [] } });
 boot();

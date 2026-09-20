@@ -1,5 +1,7 @@
 # AquaPaper quick installation
 
+In v1.3.0, enable automatic startup in **Settings → General → Apply at Windows startup**. See the [release guide](NEXT-VERSION.md).
+
 [한국어](INSTALL.ko.md) · [Full documentation](../README.en.md)
 
 1. Download **AquaPaper-Windows-x64.zip** from the [latest release](https://github.com/Hogrima/AquaPaper/releases/latest).

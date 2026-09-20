@@ -17,7 +17,7 @@ internal sealed partial class AquariumApp : ApplicationContext
     private bool paused, closing, sessionLocked, powerSuspended, wallpaperWanted, layoutBusy, startupHandled;
     private int layoutRevision;
     private readonly string[] args;
-    private bool Testing => args.Contains("--smoke-test") || args.Contains("--multi-smoke-test");
+    private bool Testing => args.Contains("--smoke-test") || args.Contains("--multi-smoke-test") || args.Contains("--startup-smoke-test");
     internal bool IsClosing => closing;
     internal string WindowTitle => T("AquaPaper · 살아 있는 수족관", "AquaPaper · Living Aquarium");
     internal string WebViewDataPath => Path.Combine(AppLog.DataPath, Testing ? "WebView2-Test" : "WebView2");
@@ -30,7 +30,7 @@ internal sealed partial class AquariumApp : ApplicationContext
         settings = JsonSerializer.SerializeToElement(new { count = 72, activity = 65, lighting = "day", interaction = true, particles = true, quality = "balanced", fishMode = "tetra3d", language = "ko" });
         try { using var doc = JsonDocument.Parse(File.ReadAllText(Path.Combine(AppLog.DataPath, "settings.json"))); if (doc.RootElement.ValueKind == JsonValueKind.Object) settings = NormalizeSettings(doc.RootElement); } catch { }
         try { display = (JsonSerializer.Deserialize<DisplayOptions>(File.ReadAllText(Path.Combine(AppLog.DataPath, "display-settings.json")), JsonOptions) ?? new()).Validated(); } catch { }
-        if (Testing) settings = JsonSerializer.SerializeToElement(new { count = 72, activity = 65, lighting = "day", interaction = true, particles = true, quality = "balanced", fishMode = "tetra3d", language = "ko" });
+        if (Testing && !args.Contains("--startup-smoke-test")) settings = JsonSerializer.SerializeToElement(new { count = 72, activity = 65, lighting = "day", interaction = true, particles = true, quality = "balanced", fishMode = "tetra3d", language = "ko" });
         icon = CreateIcon();
         var menu = new ContextMenuStrip();
         openItem = (ToolStripMenuItem)menu.Items.Add("수족관 열기", null, (_, _) => ShowPreview());
@@ -50,7 +50,7 @@ internal sealed partial class AquariumApp : ApplicationContext
         displayTimer = new System.Windows.Forms.Timer { Interval = 900 };
         displayTimer.Tick += async (_, _) => { displayTimer.Stop(); BroadcastDisplays(); if (wallpaperWanted) await RebuildWallpapers(false); };
         SystemEvents.DisplaySettingsChanged += DisplayChanged; SystemEvents.SessionSwitch += SessionChanged; SystemEvents.PowerModeChanged += PowerChanged;
-        ShowPreview(args.Contains("--settings"));
+        InitializeStartup();
     }
 
     internal static IReadOnlyList<MonitorInfo> Monitors() => Screen.AllScreens.Select((s, i) => {
@@ -108,6 +108,10 @@ internal sealed partial class AquariumApp : ApplicationContext
         if (value.ValueKind == JsonValueKind.Object) foreach (var property in value.EnumerateObject()) fields[property.Name] = property.Value.Clone();
         if (!fields.ContainsKey("fishMode")) fields["fishMode"] = JsonSerializer.SerializeToElement("tetra3d");
         if (!fields.ContainsKey("language")) fields["language"] = JsonSerializer.SerializeToElement("ko");
+        int plecos = 0;
+        if (fields.TryGetValue("plecoCount", out var valueCount) && valueCount.ValueKind == JsonValueKind.Number && valueCount.TryGetDouble(out var number) && double.IsFinite(number))
+            plecos = (int)Math.Clamp(Math.Floor(number + .5), 0, 8);
+        fields["plecoCount"] = JsonSerializer.SerializeToElement(plecos);
         return JsonSerializer.SerializeToElement(fields, JsonOptions);
     }
     private bool IsEnglish => settings.ValueKind == JsonValueKind.Object && settings.TryGetProperty("language", out var language) && language.ValueKind == JsonValueKind.String && language.GetString() == "en";
@@ -144,10 +148,10 @@ internal sealed partial class AquariumApp : ApplicationContext
     }
     internal async Task OnReady(AquariumWindow window)
     {
-        window.Post(new { type = "init", wallpaper = window.IsWallpaper, settings, paused, monitorCount = window.Target?.Monitors.Count ?? 1, displayMode = display.Mode });
+        window.Post(new { type = "init", wallpaper = window.IsWallpaper, settings, paused, monitorCount = window.Target?.Monitors.Count ?? 1, displayMode = display.Mode, plecoAllocation = PlecoAllocation(window) });
         if (window.IsWallpaper) { window.LastSuspended = null; return; }
-        BroadcastDisplays(); if (startupHandled) return; startupHandled = true;
-        if (Testing) await RunSmokeTest(window); else if (args.Contains("--wallpaper")) await ApplyWallpaper();
+        BroadcastDisplays(); BroadcastStartup(); if (startupHandled) return; startupHandled = true;
+        if (Testing && !args.Contains("--startup-smoke-test")) await RunSmokeTest(window); else if (args.Contains("--wallpaper")) await ApplyWallpaper();
     }
     internal async Task ApplyWallpaper()
     {
@@ -172,11 +176,11 @@ internal sealed partial class AquariumApp : ApplicationContext
             stopItem.Enabled = true;
             if (hidePreview) { preview?.Post(new { type = "suspend", paused = true }); preview?.Hide(); }
             AppLog.Write($"Wallpaper layout={display.Mode}, views={wallpapers.Count}, targets={string.Join("; ", targets.Select(t => t.Bounds.ToString()))}");
-            if (hidePreview && !Testing) tray.ShowBalloonTip(2500, T("수족관이 바탕화면에 적용되었습니다", "Aquarium wallpaper applied"), T("알림 영역의 물고기 아이콘에서 모니터 배치와 설정을 바꿀 수 있습니다.", "Use the fish icon in the notification area to change layout and settings."), ToolTipIcon.Info);
+            if (hidePreview && !Testing && !startupLaunching) tray.ShowBalloonTip(2500, T("수족관이 바탕화면에 적용되었습니다", "Aquarium wallpaper applied"), T("알림 영역의 물고기 아이콘에서 모니터 배치와 설정을 바꿀 수 있습니다.", "Use the fish icon in the notification area to change layout and settings."), ToolTipIcon.Info);
         }
         catch (Exception e) {
             if (revision != layoutRevision || closing) return;
-            AppLog.Write(e.ToString()); wallpaperWanted = false; CloseWallpaperWindows(); ShowPreview();
+            AppLog.Write(e.ToString()); wallpaperWanted = false; CloseWallpaperWindows(); if (!startupLaunching) ShowPreview();
             preview?.Post(new { type = "toast", text = $"바탕화면에 연결하지 못했습니다: {e.Message}" });
         }
         finally { layoutGate.Release(); if (revision == layoutRevision) { layoutBusy = false; BroadcastDisplays(); } }
@@ -185,7 +189,7 @@ internal sealed partial class AquariumApp : ApplicationContext
     {
         var old = wallpapers.ToArray(); wallpapers.Clear(); foreach (var view in old) { view.Close(); view.Dispose(); } stopItem.Enabled = false;
     }
-    internal void StopWallpaper() { wallpaperWanted = false; ++layoutRevision; layoutBusy = false; CloseWallpaperWindows(); ShowPreview(); }
+    internal void StopWallpaper() { startupTimer.Stop(); wallpaperWanted = false; ++layoutRevision; layoutBusy = false; CloseWallpaperWindows(); ShowPreview(); }
     internal void SetPaused(bool value)
     {
         paused = value; UpdateTrayLanguage();
@@ -195,7 +199,14 @@ internal sealed partial class AquariumApp : ApplicationContext
     {
         if (value.ValueKind != JsonValueKind.Object || value.GetRawText().Length > 4096) return;
         settings = NormalizeSettings(value); UpdateTrayLanguage(); if (!Testing) SaveJson("settings.json", settings.GetRawText());
-        preview?.Post(new { type = "settings", settings }); foreach (var view in wallpapers) view.Post(new { type = "settings", settings });
+        preview?.Post(new { type = "settings", settings, plecoAllocation = (int?)null }); foreach (var view in wallpapers) view.Post(new { type = "settings", settings, plecoAllocation = PlecoAllocation(view) });
+    }
+    private int? PlecoAllocation(AquariumWindow window)
+    {
+        if (!window.IsWallpaper) return null;
+        int count = settings.TryGetProperty("plecoCount", out var value) && value.TryGetInt32(out int n) ? Math.Clamp(n, 0, 8) : 0;
+        var targets = WallpaperLayout.Build(display, Monitors());
+        return WallpaperLayout.PlecoShare(count, targets.Count, targets.ToList().FindIndex(t => t.Key == window.Target?.Key));
     }
     internal bool ClosePreview()
     {
@@ -220,13 +231,14 @@ internal sealed partial class AquariumApp : ApplicationContext
     }
     private void DisplayChanged(object? sender, EventArgs e)
     {
-        try { if (!closing) preview?.BeginInvoke((Action)(() => { displayTimer.Stop(); displayTimer.Start(); })); } catch (InvalidOperationException) { }
+        try { if (!closing) dispatcher.BeginInvoke((Action)(() => { displayTimer.Stop(); displayTimer.Start(); })); } catch (InvalidOperationException) { }
     }
     private void SessionChanged(object sender, SessionSwitchEventArgs e) { sessionLocked = e.Reason is SessionSwitchReason.SessionLock or SessionSwitchReason.SessionLogoff; }
     private void PowerChanged(object sender, PowerModeChangedEventArgs e) { if (e.Mode == PowerModes.Suspend) powerSuspended = true; if (e.Mode == PowerModes.Resume) powerSuspended = false; }
     protected override void ExitThreadCore()
     {
         if (closing) return; closing = true; wallpaperWanted = false; ++layoutRevision;
+        startupTimer.Stop(); startupTimer.Dispose(); dispatcher.Dispose();
         healthTimer.Stop(); healthTimer.Dispose(); displayTimer.Stop(); displayTimer.Dispose();
         SystemEvents.DisplaySettingsChanged -= DisplayChanged; SystemEvents.SessionSwitch -= SessionChanged; SystemEvents.PowerModeChanged -= PowerChanged;
         CloseWallpaperWindows(); tray.Visible = false; tray.Dispose(); preview?.Close(); preview?.Dispose(); icon.Dispose(); base.ExitThreadCore();

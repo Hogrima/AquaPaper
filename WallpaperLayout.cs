@@ -23,6 +23,13 @@ internal sealed record WallpaperTarget(string Key, Rectangle Bounds, IReadOnlyLi
 
 internal static class WallpaperLayout
 {
+    // An aquarium-wide limit must not turn into 24 fish on three separate displays.
+    internal static int PlecoShare(int requested, int targets, int index)
+    {
+        int total = Math.Clamp(requested, 0, 8);
+        if (targets < 1 || index < 0 || index >= targets) return 0;
+        return total / targets + (index < total % targets ? 1 : 0);
+    }
     internal static Rectangle Union(IReadOnlyList<MonitorInfo> monitors) => monitors.Count == 0
         ? Rectangle.Empty : monitors.Select(m => m.Bounds).Aggregate(Rectangle.Union);
 

@@ -1,0 +1,61 @@
+/* The header, categories and save status stay in place; only the selected page scrolls. */
+.settings{width:490px;max-width:calc(100vw - 32px);top:24px;bottom:100px;max-height:none;padding:0;overflow:clip;display:flex;flex-direction:column;font-size:16px;word-break:keep-all;border-radius:22px;background:rgba(14,30,25,.97)}
+.settings[hidden],.settings [hidden]{display:none!important}
+.settings .panel-header{padding:24px 26px 18px;margin:0;flex-shrink:0}
+.settings .panel-header h2{font-size:25px;margin-top:5px}
+.settings .eyebrow{font-size:12px;letter-spacing:.12em}
+.settings-tabs{display:flex;padding:0 18px;gap:4px;border-bottom:1px solid #ffffff18;flex-shrink:0}
+.settings-tabs button{flex:1;padding:14px 8px;background:transparent;border:0;border-bottom:3px solid transparent;color:#a9beb2;font:inherit;font-size:15px;cursor:pointer;white-space:nowrap}
+.settings-tabs button[aria-selected=true]{color:#e2f2c7;border-bottom-color:#c4dea1;background:linear-gradient(transparent,#c4dea10a)}
+.settings-content{flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#6b8271 transparent;padding:22px 26px}
+.settings [role=tabpanel]{outline-offset:-2px}
+.settings .setting-group{margin:0 0 24px}
+.settings .setting-group>label,.settings .setting-row label,.settings #monitor-select-row label{font-size:16px;line-height:1.5}
+.settings .setting-group output{font-size:15px;color:#d4e8bc}
+.settings .segmented{margin-top:10px}
+.settings .segmented button{font-size:14px;min-height:42px;padding:10px 8px;line-height:1.4}
+.settings .display-description,.settings .display-status,.settings .setting-row p,.settings .section-note{font-size:14px;line-height:1.7;color:#b5c6ba}
+.settings .range-ends{font-size:13px;color:#a4b8a9}
+.settings input[type=range]{margin:17px 0 10px;min-height:18px}
+.settings .setting-row{padding:18px 0;gap:18px}
+.settings .setting-row>div{min-width:0}
+.settings .switch{flex-shrink:0}
+.settings .display-section{margin:0 0 24px;padding:0 0 20px}
+.settings .display-heading h3{font-size:17px}
+.settings #monitor-count,.settings .monitor-tile small{font-size:12px}
+.settings #monitor-select{font-size:14px;min-height:44px;max-width:100%}
+.settings .panel-footer{margin:0;padding:16px 26px;border-top:1px solid #ffffff18;flex-shrink:0;font-size:13px;gap:12px;background:#11241d}
+.settings .panel-footer button{font-size:14px;min-height:32px;white-space:nowrap}
+.settings button:focus-visible,.settings input:focus-visible,.settings select:focus-visible{outline:2px solid #dbefb5;outline-offset:3px}
+.settings button:disabled{opacity:.38;cursor:default}
+.section-note{margin:0 0 16px}
+.species-card{border:1px solid #ffffff19;background:#ffffff04;border-radius:14px;padding:16px;margin:12px 0}
+.species-title{display:flex;align-items:center;gap:12px}
+.species-title>div{flex:1;min-width:0}
+.species-title h3{font-size:16px;margin:0 0 3px;color:#e3ecde;font-weight:500}
+.species-title p{font-size:12px;color:#a6bbad;margin:0}
+.species-title button{border:1px solid #bddb9c44;border-radius:8px;padding:8px 12px;min-height:38px;background:#c4dea113;color:#d7e9c4;font:inherit;font-size:14px}
+.species-inactive .fish-swatch{opacity:.4}
+.species-number{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:14px;font-size:14px;color:#bacdbc}
+.species-number input{width:82px;border-radius:8px;border:1px solid #ffffff28;background:#081b14;color:#e2eddb;padding:7px 10px;font:inherit;font-size:16px}
+.fish-swatch{display:block;width:36px;height:16px;border-radius:70% 55% 50% 65%;flex-shrink:0}
+.fish-swatch.neon{background:linear-gradient(#6c8991 20%,#41d3ec 35%,#dae2dc 47%,#b32129 75%)}
+.fish-swatch.rummy{background:linear-gradient(90deg,#d42f35 25%,#bfccc4 30%,#829c91 77%,#e9eeea 78%,#182822 86%,#e9eeea 89%)}
+@media(max-height:650px){.settings{top:12px;bottom:82px}.settings .panel-header{padding:14px 22px 10px}.settings .panel-header .eyebrow{display:none}.settings .panel-header h2{font-size:22px}.settings-content{padding:18px 22px}.settings .panel-footer{padding:10px 22px}}
+@media(max-width:650px){.settings{right:16px;left:auto;width:calc(100vw - 32px)}.settings-tabs{padding:0 10px}.settings-content{padding:18px}.settings .panel-footer{padding:12px 18px}.settings .segmented button{font-size:13px}}
+
+/* Keep both species controls within a normal desktop settings page. */
+.settings .fish-mode-group{margin-bottom:18px}
+.settings .fish-mode-group .display-description{margin:8px 0 0;line-height:1.5}
+.species-card{position:relative;display:grid;grid-template-columns:30px minmax(0,1fr) 68px 58px;gap:10px;align-items:center;padding:14px 12px}
+.species-title,.species-number{display:contents}
+.species-title .fish-swatch{grid-column:1;grid-row:1;width:30px}
+.species-title>div{grid-column:2;grid-row:1}
+.species-title button{grid-column:4;grid-row:1;padding:8px 6px}
+.species-number input{grid-column:3;grid-row:1;width:68px;padding:7px 6px}
+.species-number label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+@media(max-width:410px){.species-card{grid-template-columns:minmax(0,1fr) 64px 54px;gap:8px}.species-title .fish-swatch{display:none}.species-title>div{grid-column:1}.species-number input{grid-column:2;width:64px}.species-title button{grid-column:3}.species-title h3{font-size:15px}}
+
+.fish-swatch.pleco{height:20px;border-radius:65% 45% 25% 65%;background:radial-gradient(ellipse at 30% 30%,#827147 12%,transparent 14%) 0 0/8px 6px,#283323}
+#pleco-section{border-top:1px solid #ffffff18;padding-top:18px;margin-top:18px}
+.settings .pleco-note{font-size:13px;margin:10px 0 0;line-height:1.6}

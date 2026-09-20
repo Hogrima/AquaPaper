@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "generator": "Blender 5.2.2 LTS",
+  "stride": 11,
+  "length": 2.4,
+  "species": "Pterygoplichthys pardalis",
+  "originalAsset": true,
+  "coordinates": "+X head, +Y dorsal, +Z lateral",
+  "opaqueVertices": 46572,
+  "finVertices": 21168,
+  "binary": "pleco.mesh.bin",
+  "lod": {
+    "opaqueVertices": 11838,
+    "finVertices": 11334,
+    "binary": "pleco.lod.bin"
+  }
+}

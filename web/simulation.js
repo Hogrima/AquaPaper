@@ -1,9 +1,13 @@
-export const DEFAULTS = Object.freeze({ count: 72, activity: 65, lighting: 'day', interaction: true, particles: true, quality: 'balanced', fishMode: 'tetra3d', language: 'ko' });
+import { clampPlecos } from './pleco.js';
+import { population } from './population.js';
+export const DEFAULTS = Object.freeze({ count: 72, activity: 65, lighting: 'day', interaction: true, particles: true, quality: 'balanced', fishMode: 'tetra3d', language: 'ko', rummyCount: 0, plecoCount: 0 });
 export function normalizeSettings(value = {}) {
   if (!value || typeof value !== 'object') value = {};
   const number = (v, fallback, lo, hi) => typeof v === 'number' && Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : fallback;
   return {
     count: Math.round(number(value.count, DEFAULTS.count, 12, 160)),
+    rummyCount: population(value).rummy,
+    plecoCount: clampPlecos(value.plecoCount),
     activity: number(value.activity, DEFAULTS.activity, 30, 130),
     lighting: ['day', 'dusk', 'night'].includes(value.lighting) ? value.lighting : 'day',
     interaction: typeof value.interaction === 'boolean' ? value.interaction : true,

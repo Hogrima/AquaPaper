@@ -77,6 +77,8 @@ internal sealed class AquariumWindow : Form
                 case "ready": ready = true; initialized.TrySetResult(); await app.OnReady(this); if (showSettingsPending) { Post(new { type = "showSettings" }); showSettingsPending = false; } break;
                 case "settings": app.SaveSettings(m.GetProperty("settings")); break;
                 case "display": if (!IsWallpaper) await app.ChangeDisplay(m.GetProperty("options")); break;
+                case "startup": if (!IsWallpaper) app.ChangeStartup(m.GetProperty("enabled").GetBoolean()); break;
+                case "startupRefresh": if (!IsWallpaper) app.BroadcastStartup(); break;
                 case "displayRefresh": if (!IsWallpaper) app.BroadcastDisplays(); break;
                 case "wallpaper": if (!IsWallpaper) await app.ApplyWallpaper(); break;
                 case "pause": app.SetPaused(m.GetProperty("paused").GetBoolean()); break;

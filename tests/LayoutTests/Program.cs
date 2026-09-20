@@ -26,4 +26,10 @@ Check(!all[1].NormalizeCursor(new Point(-960,380)).Active,"Cursor must not activ
 var edgeA=span[0].NormalizeCursor(new Point(-1,500));var edgeB=span[0].NormalizeCursor(new Point(0,500));
 Check(edgeA.Active&&edgeB.Active&&Math.Abs(edgeB.X-edgeA.X-1.0/6400)<1e-9,"Span coordinates must be continuous across a seam");
 var one=WallpaperLayout.Build(new("span"),screens[1..2]);Check(one.Count==1&&one[0].Bounds==screens[1].Bounds,"Span must degrade gracefully on one monitor");
+for (int total = -1; total <= 12; total++) for (int displays = 1; displays <= 10; displays++) {
+    var shares = Enumerable.Range(0, displays).Select(i => WallpaperLayout.PlecoShare(total, displays, i)).ToArray();
+    Check(shares.Sum() == Math.Clamp(total, 0, 8), "Global pleco budget must survive any monitor count");
+    Check(shares.Max() - shares.Min() <= 1, "Separate displays should share the budget evenly");
+}
+Check(WallpaperLayout.PlecoShare(8, 3, -1) == 0, "An obsolete wallpaper target gets no plecos");
 Console.WriteLine($"Layout tests: {assertions} assertions passed.");
