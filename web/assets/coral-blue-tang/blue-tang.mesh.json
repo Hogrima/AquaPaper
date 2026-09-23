@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "generator": "Blender 5.2.2 LTS",
+  "stride": 11,
+  "length": 1.8599999999999999,
+  "species": "Paracanthurus hepatus",
+  "originalAsset": true,
+  "coordinates": "+X head, +Y dorsal, +Z lateral",
+  "opaqueVertices": 31608,
+  "finVertices": 8442,
+  "binary": "blue-tang.mesh.bin",
+  "lod": {
+    "opaqueVertices": 10728,
+    "finVertices": 4572,
+    "binary": "blue-tang.lod.bin"
+  }
+}

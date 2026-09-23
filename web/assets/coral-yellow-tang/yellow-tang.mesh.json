@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "generator": "Blender 5.2.2 LTS",
+  "stride": 11,
+  "length": 1.8199999999999998,
+  "species": "Zebrasoma flavescens",
+  "originalAsset": true,
+  "coordinates": "+X head, +Y dorsal, +Z lateral",
+  "opaqueVertices": 31608,
+  "finVertices": 8442,
+  "binary": "yellow-tang.mesh.bin",
+  "lod": {
+    "opaqueVertices": 10728,
+    "finVertices": 4572,
+    "binary": "yellow-tang.lod.bin"
+  }
+}

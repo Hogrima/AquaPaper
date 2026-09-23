@@ -22,8 +22,8 @@ out float v_surface;
 out float v_cover;
 flat out float v_kind;
 float flex(float x){
- if(a_swim.w>1.5)return 0.;
- if(a_swim.w>.5)return pow(clamp((.15-x)/1.60,0.,1.),2.)*sin(a_swim.z+x*4.8)*.22*a_swim.x;
+ if(a_swim.w>1.5&&a_swim.w<2.5)return 0.;
+ if(a_swim.w>.5&&a_swim.w<1.5)return pow(clamp((.15-x)/1.60,0.,1.),2.)*sin(a_swim.z+x*4.8)*.22*a_swim.x;
  float envelope=pow(clamp((.48-x)/1.68,0.,1.),2.);
  return envelope*(sin(a_pose.w+x*5.2)*(.035+.19*a_swim.x)+a_swim.y);
 }
@@ -31,8 +31,11 @@ void main(){
  vec3 p=a_position;
  p.z+=flex(p.x);
  // Paired pectoral fins make small stabilizing strokes, including while coasting.
- if(a_swim.w<.5&&a_surface>.5&&a_surface<1.5&&p.x>.0&&p.y<-.035){
+ if((a_swim.w<.5||a_swim.w>2.5)&&a_surface>.5&&a_surface<1.5&&p.x>.0&&p.y<-.035){
    p.z+=sin(a_pose.w*.55+sign(p.z))*.025*smoothstep(.07,.25,abs(p.z));
+ }
+ if(a_swim.w>5.5&&a_swim.w<6.5&&a_surface>.5&&a_surface<1.5&&p.y>.48){
+   p.z+=sin(a_pose.w*.42+p.x*4.2)*.045*smoothstep(.48,1.05,p.y);
  }
  if(a_swim.w>.5&&a_swim.w<1.5){
    if(a_surface>.5&&a_surface<1.5&&p.y>.22)p.y=.22+(p.y-.22)*(.32+.68*a_swim.x);
@@ -46,7 +49,7 @@ void main(){
  vec3 rolledUp=up*cos(a_pose.z)+side*sin(a_pose.z);
  vec3 rolledSide=side*cos(a_pose.z)-up*sin(a_pose.z);
  mat3 rotation=mat3(forward,rolledUp,rolledSide);
- if(a_swim.w>.5){
+ if(a_swim.w>.5&&a_swim.w<2.5){
    vec4 q=a_pose;vec3 q2=q.xyz*2.;
    rotation=mat3(1.-q.y*q2.y-q.z*q2.z,q.x*q2.y+q.w*q2.z,q.x*q2.z-q.w*q2.y,
                  q.x*q2.y-q.w*q2.z,1.-q.x*q2.x-q.z*q2.z,q.y*q2.z+q.w*q2.x,
@@ -124,7 +127,7 @@ void main(){
    n=skinNormal(n,grooves*.000035*lip);
    skinRoughness=.67;
  }
- if(v_kind>1.5){
+ if(v_kind>1.5&&v_kind<2.5){
    float grain=sin(v_local.x*72.+v_local.y*61.+sin(v_local.z*4.)*.8);
    float cracks=pow(max(0.,sin(v_local.x*37.+v_local.y*41.+sin(v_local.z*3.)*.4)),18.);
    base=mix(vec3(.032,.015,.005),vec3(.065,.035,.011),grain*.5+.5)*(1.-cracks*.50);
@@ -140,14 +143,38 @@ void main(){
  // Keep structural blue on the flank: the color shifts with viewing angle, not a flat glow.
  float stripe=step(.15,base.b-base.r)*(1.-step(.5,v_surface))*(1.-step(.5,v_kind));
  base=mix(base,mix(vec3(.005,.15,.66),vec3(.01,.64,.82),pow(ndv,.8)),stripe*.72);
- float roughness=v_kind>1.5?.92:(eye?.13:(v_kind>.5?skinRoughness:(fin?.48:.36)));
- if(!fin&&!eye&&v_kind<.5){
-   vec2 cell=vec2(v_local.x*85.,v_local.y*120.);
+ float roughness=v_kind>1.5&&v_kind<2.5?.92:(eye?.13:(v_kind>.5&&v_kind<1.5?skinRoughness:(fin?.48:.36)));
+ if(!fin&&!eye&&(v_kind<.5||v_kind>2.5)){
+   bool reefSkin=v_kind>2.5;
+   vec2 cell=reefSkin?vec2(v_local.x*58.,v_local.y*72.+v_local.z*22.):vec2(v_local.x*85.,v_local.y*120.);
    cell.x+=mod(floor(cell.y),2.)*.5;
-   float scale=hash(floor(cell));
-   float edge=smoothstep(.32,.49,length(fract(cell)-.5));
-   base*=.92+scale*.13-edge*.065;
-   roughness+=scale*.09;
+   float scale=hash(floor(cell)),visibility=1.-smoothstep(.65,1.8,length(fwidth(cell)));
+   vec2 plate=(fract(cell)-.5)*vec2(1.,1.18);
+   float seam=smoothstep(.37,.49,length(plate));
+   float pigment=(scale-.5)*.22-seam*.13;
+   base*=1.+pigment*visibility*(reefSkin?1.:.55);
+   roughness+=scale*(reefSkin?.065:.09)*visibility;
+   if(reefSkin){
+     // Fine displaced plate edges stay in object space while derivative filtering
+     // removes detail once a fish is too small to resolve it.
+     n=skinNormal(n,(1.-seam)*.00016*visibility);
+     if(v_kind>6.5){
+       vec2 spots=vec2(v_local.x*8.,v_local.y*13.+v_local.z*4.);
+       spots.x+=mod(floor(spots.y),2.)*.35;
+       vec2 spotId=floor(spots),spotLocal=fract(spots)-.5;
+       spotLocal+=vec2(hash(spotId),hash(spotId+vec2(19.,37.)))*.16-.08;
+       float fleck=1.-smoothstep(.20,.34,length(spotLocal*vec2(1.15,.85)));
+       float sharp=1.-smoothstep(.5,1.2,length(fwidth(spots)));
+       base=mix(base,vec3(.19,.038,.026),fleck*.88*sharp);
+     }
+     roughness=v_kind>6.5?.48:v_kind>5.5?.32:v_kind>4.5?.28:v_kind>3.5?.35:.39;
+     roughness+=scale*.07*visibility;
+   }
+ }
+ if(fin&&v_kind>2.5){
+   float rib=.5+.5*sin(v_local.x*124.+v_local.y*56.+v_local.z*32.);
+   float detail=1.-smoothstep(.45,1.3,length(fwidth(v_local.xy*vec2(124.,56.))));
+   base*=1.+(rib-.5)*.20*detail;
  }
  float a=roughness*roughness,a2=a*a,nh=max(0.,dot(n,halfway));
  float denom=nh*nh*(a2-1.)+1.;
@@ -157,7 +184,8 @@ void main(){
  vec3 f0=eye?vec3(.055):mix(vec3(.045),base,stripe*.52+.18);
  vec3 fresnel=f0+(1.-f0)*pow(1.-max(0.,dot(view,halfway)),5.);
  vec3 specular=distribution*geometry*fresnel/max(.01,4.*ndl*ndv);
- vec3 ambient=mix(vec3(.09,.15,.12),vec3(.40,.51,.57),n.y*.5+.5);
+ bool reef=v_kind>2.5;
+ vec3 ambient=reef?mix(vec3(.075,.14,.28),vec3(.32,.52,.72),n.y*.5+.5):mix(vec3(.09,.15,.12),vec3(.40,.51,.57),n.y*.5+.5);
  vec3 color=base*(ambient+ndl*.66)+specular*ndl*1.65;
  float rim=pow(1.-ndv,3.);
  color+=vec3(.05,.18,.20)*rim*(eye?.1:.28);
@@ -165,7 +193,7 @@ void main(){
  if(u_lighting>.5&&u_lighting<1.5)color*=vec3(1.10,.84,.62);
  if(u_lighting>1.5)color*=vec3(.32,.50,.76);
  float fog=clamp((.38-v_world.z)*.42,0.,.30);
- color=mix(color,vec3(.025,.065,.046),fog);
+ color=mix(color,reef?vec3(.015,.09,.24):vec3(.025,.065,.046),fog);
  color*=mix(1.,.18,clamp(v_cover,0.,1.));
  color=pow(max(color,vec3(0.)),vec3(1./2.2));
  outColor=vec4(color,fin?v_color.a:1.);
@@ -180,7 +208,7 @@ export class TetraRenderer {
     this.buffer = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
     gl.bufferData(gl.ARRAY_BUFFER, this.instances.byteLength, gl.DYNAMIC_DRAW);
     this.attributes = ['a_fish','a_pose','a_swim'].map(name => gl.getAttribLocation(this.program,name));
-    for (const [id, slug, file] of [['neon','neon-tetra','neon-tetra'],['rummy','rummy-nose','rummy-nose'],['pleco','pleco','pleco'],['shelter','pleco','shelter']]) {
+    for (const [id, slug, file] of [['neon','neon-tetra','neon-tetra'],['rummy','rummy-nose','rummy-nose'],['pleco','pleco','pleco'],['shelter','pleco','shelter'],['clown','coral-clown','clown'],['yellow-tang','coral-yellow-tang','yellow-tang'],['blue-tang','coral-blue-tang','blue-tang'],['moorish-idol','coral-moorish-idol','moorish-idol'],['dwarf-hawkfish','coral-dwarf-hawkfish','dwarf-hawkfish']]) {
       const responses = await Promise.all(['mesh.json','mesh.bin','lod.bin'].map(ext => fetch(`assets/${slug}/${file}.${ext}`)));
       if (responses.some(r => !r.ok)) throw new Error(`Missing 3D model: ${slug}`);
       const [meta,data,lodData] = await Promise.all([responses[0].json(),responses[1].arrayBuffer(),responses[2].arrayBuffer()]);
@@ -209,9 +237,9 @@ export class TetraRenderer {
   upload(fish) {
     let i=0;
     for (const f of fish) {
-      const kind=f.species==='pleco'?1:f.species==='shelter'?2:0;
-      const pose=kind?f.orientation:[f.yaw,f.pitch,f.roll,f.phase];
-      this.instances.set([f.x,f.y,f.z,f.length/this.models[f.species].meta.length,...pose,f.tail,kind===1?(f.cover||0):f.bend,kind?f.phase:f.panic,kind],i); i+=12;
+      const kind={pleco:1,shelter:2,clown:3,'yellow-tang':4,'blue-tang':5,'moorish-idol':6,'dwarf-hawkfish':7}[f.species]||0;
+      const pose=kind===1||kind===2?f.orientation:[f.yaw,f.pitch,f.roll,f.phase];
+      this.instances.set([f.x,f.y,f.z,f.length/this.models[f.species].meta.length,...pose,f.tail,kind===1?(f.cover||0):f.bend,kind===1||kind===2?f.phase:f.panic,kind],i); i+=12;
     }
     const gl=this.gl; gl.bindBuffer(gl.ARRAY_BUFFER,this.buffer);gl.bufferSubData(gl.ARRAY_BUFFER,0,this.instances.subarray(0,i));
   }

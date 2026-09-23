@@ -1,7 +1,8 @@
 import { clampPlecos } from './pleco.js';
 import { population } from './population.js';
 import { cameraOrbit } from './scene.js';
-export const DEFAULTS = Object.freeze({ count: 72, activity: 65, lighting: 'day', interaction: true, particles: true, parallax: true, waterSurface: true, quality: 'balanced', fishMode: 'tetra3d', language: 'ko', rummyCount: 0, plecoCount: 0 });
+import { normalizeBackground } from './backgrounds.js';
+export const DEFAULTS = Object.freeze({ count: 72, activity: 65, lighting: 'day', interaction: true, particles: true, parallax: true, waterSurface: true, quality: 'balanced', fishMode: 'tetra3d', background: 'original', language: 'ko', rummyCount: 0, plecoCount: 0 });
 export function normalizeSettings(value = {}) {
   if (!value || typeof value !== 'object') value = {};
   const number = (v, fallback, lo, hi) => typeof v === 'number' && Number.isFinite(v) ? Math.max(lo, Math.min(hi, v)) : fallback;
@@ -15,8 +16,9 @@ export function normalizeSettings(value = {}) {
     particles: typeof value.particles === 'boolean' ? value.particles : true,
     parallax: typeof value.parallax === 'boolean' ? value.parallax : true,
     waterSurface: typeof value.waterSurface === 'boolean' ? value.waterSurface : true,
+    background: normalizeBackground(value.background),
     quality: ['eco', 'balanced', 'high'].includes(value.quality) ? value.quality : 'balanced',
-    fishMode: ['classic', 'tetra3d'].includes(value.fishMode) ? value.fishMode : 'tetra3d',
+    fishMode: normalizeBackground(value.background)==='coral'?'tetra3d':(['classic', 'tetra3d'].includes(value.fishMode) ? value.fishMode : 'tetra3d'),
     language: ['ko', 'en'].includes(value.language) ? value.language : 'ko',
   };
 }

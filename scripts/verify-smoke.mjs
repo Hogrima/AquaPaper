@@ -4,18 +4,34 @@ const report = JSON.parse(await readFile(process.argv[2] || new URL('../artifact
 const is3D = report.preview.settings.fishMode === 'tetra3d';
 for(const d of report.environmentCases || []) {
   assert.equal(d.webglError,0);assert.deepEqual(d.errors,[]);
-  assert.equal(d.environment.layers,6);
-  assert.equal(d.environment.cachedLayers,6);
+  assert.equal(d.environment.layers,d.settings.background==='coral'?10:d.settings.background==='layered'?6:1);
+  assert.equal(d.environment.loadedImages,6);
+  assert.equal(d.environment.loadedCoralImages,10);
+  assert.equal(d.environment.coralError,null);
+  assert.equal(d.environment.backgroundError,null);
   assert.equal(d.environment.waterSurface,d.settings.waterSurface);
   if(d.settings.particles){assert.ok(d.environment.particles.dust>=100);assert.ok(d.environment.particles.bubbles>=18);}
   else assert.equal(d.environment.particles.total,0);
   if(!d.settings.parallax)assert.deepEqual(d.environment.orbit,[0,0]);
   else assert.ok(Math.hypot(...d.environment.orbit)>0);
 }
+if(report.depthFrames?.length){
+  assert.deepEqual(report.depthFrames.map(f=>f.time),[0,37.5,75,112.5,75.5,76]);
+  for(const f of report.depthFrames){
+    assert.equal(f.diagnostics.webglError,0);assert.deepEqual(f.diagnostics.errors,[]);
+    assert.equal(f.diagnostics.environment.loadedImages,6);
+    assert.equal(f.diagnostics.environment.loadedCoralImages,10);
+  }
+}
+for(const d of report.backgroundCases||[]){
+  assert.equal(d.environment.layers,d.settings.background==='coral'?10:d.settings.background==='layered'?6:1);
+  assert.equal(d.environment.loadedImages,6);assert.equal(d.environment.loadedCoralImages,10);assert.equal(d.environment.backgroundError,null);assert.equal(d.environment.coralError,null);
+  assert.equal(d.webglError,0);assert.deepEqual(d.errors,[]);
+}
 function verify3D(d, label) {
   assert.equal(d.settings.fishMode, 'tetra3d', `${label}: 3D mode fell back unexpectedly`);
   if (d.tetra.population) {
-    const expectedPlecos = d.plecoAllocation ?? d.settings.plecoCount ?? 0;
+    const expectedPlecos = d.settings.background==='coral'?0:(d.plecoAllocation ?? d.settings.plecoCount ?? 0);
     assert.equal(d.tetra.population.pleco || 0, expectedPlecos, `${label}: pleco allocation mismatch`);
     assert.ok(expectedPlecos <= 8);
     assert.equal(d.fish, d.settings.count + expectedPlecos);
@@ -24,8 +40,14 @@ function verify3D(d, label) {
       assert.ok(Number.isFinite(p.x+p.y+p.z));
       assert.ok(Math.abs(Math.hypot(...p.orientation)-1)<1e-5);
     }
-    assert.equal(d.tetra.population.rummy || 0, d.settings.rummyCount || 0, `${label}: rummy school count mismatch`);
-    assert.equal(d.tetra.population.neon || 0, d.settings.count - (d.settings.rummyCount || 0), `${label}: neon school count mismatch`);
+    if(d.settings.background==='coral'){
+      for(const species of ['clown','yellow-tang','blue-tang','moorish-idol','dwarf-hawkfish'])assert.ok(d.tetra.population[species]>=1,`${label}: missing ${species}`);
+      assert.equal(['clown','yellow-tang','blue-tang','moorish-idol','dwarf-hawkfish'].reduce((n,s)=>n+d.tetra.population[s],0),d.settings.count);
+      assert.equal(d.tetra.population.neon||0,0);assert.equal(d.tetra.population.rummy||0,0);
+    } else {
+      assert.equal(d.tetra.population.rummy || 0, d.settings.rummyCount || 0, `${label}: rummy school count mismatch`);
+      assert.equal(d.tetra.population.neon || 0, d.settings.count - (d.settings.rummyCount || 0), `${label}: neon school count mismatch`);
+    }
   }
   assert.ok(d.tetra.ready && !d.tetra.error && d.tetra.vertices > 1000, `${label}: missing Blender mesh`);
   assert.ok(d.tetra.depthRange[1] - d.tetra.depthRange[0] > .01, `${label}: fish have no depth distribution`);

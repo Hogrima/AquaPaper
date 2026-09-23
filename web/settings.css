@@ -57,5 +57,20 @@
 @media(max-width:410px){.species-card{grid-template-columns:minmax(0,1fr) 64px 54px;gap:8px}.species-title .fish-swatch{display:none}.species-title>div{grid-column:1}.species-number input{grid-column:2;width:64px}.species-title button{grid-column:3}.species-title h3{font-size:15px}}
 
 .fish-swatch.pleco{height:20px;border-radius:65% 45% 25% 65%;background:radial-gradient(ellipse at 30% 30%,#827147 12%,transparent 14%) 0 0/8px 6px,#283323}
+.fish-swatch.coral-clown{background:linear-gradient(90deg,#ee6828 0 18%,#eaf4e9 19% 29%,#f08035 30% 50%,#f4f0df 51% 62%,#ee6828 63%)}
+.fish-swatch.coral-yellow{background:#e9ba18}
+.fish-swatch.coral-blue{background:linear-gradient(#122646 20%,#2259d3 35% 70%,#efca21 72%)}
+.fish-swatch.coral-idol{background:linear-gradient(90deg,#f5edce 0 20%,#142129 21% 40%,#f1eddb 41% 57%,#111d23 58% 78%,#f3eecf 79%)}
+.fish-swatch.coral-hawk{background:radial-gradient(circle at 30% 40%,#8b3a29 0 8%,transparent 9%),radial-gradient(circle at 70% 60%,#8b3a29 0 8%,transparent 9%),#b7a88e}
+#coral-species .species-card{grid-template-columns:30px minmax(0,1fr) 55px}
+#coral-species .species-title output{grid-column:3;grid-row:1;color:#dcebe0;font-size:16px;text-align:right}
+#coral-species{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+#coral-species[hidden]{display:none}
+#coral-species>.section-note{grid-column:1/-1;margin:4px 0}
+#coral-species .species-card{margin:0;padding:10px 8px;grid-template-columns:24px minmax(0,1fr) 23px;gap:6px;min-height:58px}
+#coral-species .fish-swatch{width:24px;height:24px}
+#coral-species .species-title h3{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#coral-species .species-title p{font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#coral-species .species-title output{font-size:14px}
 #pleco-section{border-top:1px solid #ffffff18;padding-top:18px;margin-top:18px}
 .settings .pleco-note{font-size:13px;margin:10px 0 0;line-height:1.6}

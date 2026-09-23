@@ -1,5 +1,7 @@
 # AquaPaper
 
+**v1.5.0:** Choose **River forest · layered** or **Tropical coral reef** in Settings → Aquarium. The river forest has distinct tall left plants and low broad-leaf right plants that bend in the water flow. The reef uses ten independent image planes and five Blender fish: clownfish, yellow tang, blue tang, Moorish idol and dwarf hawkfish. [River forest guide](docs/LAYERED-BACKGROUNDS.md) · [Reef guide](docs/TROPICAL-REEF.md)
+
 **v1.4.0:** Includes [six depth layers, surface water, particles and individual swimming improvements](docs/ATMOSPHERE.md).
 
 **v1.3.0:** Includes Windows startup, larger tabbed settings, and original Blender rummy-nose tetra and pleco models with species controls. [Release guide](docs/NEXT-VERSION.md) · [Detailed pleco skin, attachment and shelter behavior](docs/PLECO.md). Plecos are limited to eight across the desktop.

@@ -2,6 +2,7 @@ param(
     [switch]$Portable,
     [switch]$Zip,
     [switch]$NoRestore,
+    [string]$OutputDirectory = '',
     [string]$RuntimeVersion = '10.0.12'
 )
 $ErrorActionPreference = 'Stop'
@@ -9,7 +10,7 @@ Set-StrictMode -Version Latest
 Push-Location -LiteralPath $PSScriptRoot
 try {
     # Separate output folders prevent bundled runtimes leaking into a framework-dependent build.
-    $output = if ($Portable) { 'dist\AquaPaper' } else { 'dist\framework-dependent\AquaPaper' }
+    $output = if ($OutputDirectory) { $OutputDirectory } elseif ($Portable) { 'dist\AquaPaper' } else { 'dist\framework-dependent\AquaPaper' }
     $publishArgs = @('publish', 'AquaPaper.csproj', '-c', 'Release', '-r', 'win-x64',
         '--self-contained', $Portable.IsPresent.ToString().ToLowerInvariant(), '-o', $output,
         "-p:RuntimeFrameworkVersion=$RuntimeVersion")

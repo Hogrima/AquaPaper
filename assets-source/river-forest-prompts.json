@@ -1,0 +1,80 @@
+{
+  "tool": "Built-in image_gen",
+  "date": "2026-09-21",
+  "initialPrompts": [
+    {
+      "name": "02-rear-plants",
+      "prompt": "Use case: photorealistic-natural. Create ONE transparent PNG parallax layer for a realistic freshwater aquarium. The reference is ONLY lighting/perspective/color style guidance, NOT an edit target and MUST NOT appear as background. Full 1536x1024 landscape canvas, exactly same framing as reference; preserve empty canvas, do NOT crop tightly to objects. Real alpha transparency everywhere except the requested objects, including between leaves. No painted checkerboard, no white/black backdrop, no water, no mist overlay, no text, no fish, no bubbles, no surface. Photographic aquatic olive-green ribbon-leaf Vallisneria, warm filtered sunlight from upper left and teal shaded undersides, underwater material detail, restrained natural colors. These objects will be composited over the reference in separate depth planes. ONLY two distinct modest distant clusters of fine ribbon-leaf Vallisneria rooted along the lower left and lower right edges, extending from bottom to about 40% image height. Keep middle 60% of width and entire upper third EMPTY transparent. Rear plants should look smaller and slightly softened by distance but opaque leaves, no translucent green cloud. Tiny rooted tufts at bottom corners, no floor or rocks."
+    },
+    {
+      "name": "03-driftwood",
+      "prompt": "Use case: photorealistic-natural. Create ONE transparent PNG parallax layer for a realistic freshwater aquarium. The reference is ONLY lighting/perspective/color style guidance, NOT an edit target and MUST NOT appear as background. Full 1536x1024 landscape canvas, exactly same framing as reference; preserve empty canvas, do NOT crop tightly to objects. Real alpha transparency everywhere except the requested objects, including between leaves. No painted checkerboard, no white/black backdrop, no water, no mist overlay, no text, no fish, no bubbles, no surface. Photographic aquatic olive-green ribbon-leaf Vallisneria, warm filtered sunlight from upper left and teal shaded undersides, underwater material detail, restrained natural colors. These objects will be composited over the reference in separate depth planes. ONLY one richly textured mossy sunken tree branch/log rising from x=8%,y=67% and descending diagonally to x=69%,y=88%, a modest irregular root branch pointing left. Dark brown grooved waterlogged wood, a few small olive aquatic leaves and moss attached. Occupy ONLY lower left/middle third, nothing in upper half or upper right. Preserve transparent holes between branches. No sand, no surrounding plants, no background."
+    },
+    {
+      "name": "04-stones",
+      "prompt": "Use case: photorealistic-natural. Create ONE transparent PNG parallax layer for a realistic freshwater aquarium. The reference is ONLY lighting/perspective/color style guidance, NOT an edit target and MUST NOT appear as background. Full 1536x1024 landscape canvas, exactly same framing as reference; preserve empty canvas, do NOT crop tightly to objects. Real alpha transparency everywhere except the requested objects, including between leaves. No painted checkerboard, no white/black backdrop, no water, no mist overlay, no text, no fish, no bubbles, no surface. Photographic aquatic olive-green ribbon-leaf Vallisneria, warm filtered sunlight from upper left and teal shaded undersides, underwater material detail, restrained natural colors. These objects will be composited over the reference in separate depth planes. ONLY foreground dark smooth weathered river stones, sparse small rounded gravel and a few short rooted ribbon grass tufts along the very bottom 18% of canvas, highest rock at left x=15%,y=81%, smaller right rock x=86%,y=88%. Center bottom remains mostly transparent to reveal sandy path. No full floor sheet, no backdrop. Real wet dark basalt texture with fine green biofilm and warm upper-left glints, realistic grounding."
+    },
+    {
+      "name": "05-left-plants",
+      "prompt": "Use case: photorealistic-natural. Create ONE transparent PNG parallax layer for a realistic freshwater aquarium. The reference is ONLY lighting/perspective/color style guidance, NOT an edit target and MUST NOT appear as background. Full 1536x1024 landscape canvas, exactly same framing as reference; preserve empty canvas, do NOT crop tightly to objects. Real alpha transparency everywhere except the requested objects, including between leaves. No painted checkerboard, no white/black backdrop, no water, no mist overlay, no text, no fish, no bubbles, no surface. Photographic aquatic olive-green ribbon-leaf Vallisneria, warm filtered sunlight from upper left and teal shaded undersides, underwater material detail, restrained natural colors. These objects will be composited over the reference in separate depth planes. ONLY a dense graceful near-camera curtain of long olive Vallisneria ribbon leaves rooted below bottom-left. Stems enter from bottom and left crop boundaries. Leaves occupy leftmost 21% width, with a few tapered arcing leaves reaching x=34% near upper left. RIGHT 65% and central swimming space COMPLETELY transparent. Fine leaf venation, irregular edges, slight algae, dark layered greens, backlit golden-green thin edges. No rocks, wood or bottom sand."
+    },
+    {
+      "name": "06-right-plants",
+      "prompt": "Use case: photorealistic-natural. Create ONE transparent PNG parallax layer for a realistic freshwater aquarium. The reference is ONLY lighting/perspective/color style guidance, NOT an edit target and MUST NOT appear as background. Full 1536x1024 landscape canvas, exactly same framing as reference; preserve empty canvas, do NOT crop tightly to objects. Real alpha transparency everywhere except the requested objects, including between leaves. No painted checkerboard, no white/black backdrop, no water, no mist overlay, no text, no fish, no bubbles, no surface. Photographic aquatic olive-green ribbon-leaf Vallisneria, warm filtered sunlight from upper left and teal shaded undersides, underwater material detail, restrained natural colors. These objects will be composited over the reference in separate depth planes. ONLY a graceful very near-camera cluster of long olive Vallisneria ribbon leaves rooted beyond bottom-right corner. Occupies rightmost 18% width, a few gently arcing leaf tips reach x=73% near top right. LEFT 70% COMPLETELY empty transparent, center swimming space clear. Slightly broader leaves than distant plants, crisp longitudinal veins, natural imperfect edges, darker teal undersides with warm upper-left highlights. No sand, stones, logs or other plants."
+    }
+  ],
+  "asymmetricCorrections": [
+    {
+      "key": "base-asymmetric",
+      "paths": [
+        "C:\\Users\\이영재\\.codex\\generated_images\\01a0b399-c837-71b2-b627-622210329107\\exec-7ca3529d-c888-486b-b046-00d3aa41a538.png"
+      ],
+      "prompt": "Edit this aquarium distant background plate. Preserve photographic quality, emerald-teal underwater color, golden illumination from upper left and natural water underside at top. Make the composition clearly ASYMMETRIC: all faint distant ribbon plant silhouettes belong to a small irregular patch on the LEFT only; remove ALL right-side plants. Redesign the sand floor as a natural diagonal sandy channel entering from the bottom RIGHT and curving toward the LEFT of center in the distance, with a subtly raised darker silty bank along the lower left. Right half open water and sand. No rocks, no logs, no foreground plants, no fish. This remains the opaque distant base plate for separately drawn foreground objects. Same 1536x1024 full frame."
+    },
+    {
+      "key": "rear-asymmetric",
+      "paths": [
+        "C:\\Users\\이영재\\.codex\\generated_images\\01a0b399-c837-71b2-b627-622210329107\\exec-24eb9db0-1a61-412f-9c01-fcd6767c6652.png"
+      ],
+      "prompt": "Edit this transparent aquarium rear-plant layer into a genuinely ASYMMETRIC arrangement. Remove the ENTIRE right-side clump. Keep ONLY an irregular thin-leaf Vallisneria patch growing diagonally upward from bottom LEFT, tapering in height toward x=48% at bottom. Do not mirror, duplicate or balance it with anything on the right. Right 52% and upper 35% entirely transparent. Remove ALL colored haze/green glow behind and around the leaves: alpha must be ZERO wherever there is no solid leaf or stem, including holes. Crisp natural leaf-edge antialiasing only. Preserve matching olive color, warm upper-left light, full 1536x1024 canvas. This is an isolated foliage cutout, NOT a complete scene."
+    },
+    {
+      "key": "right-asymmetric",
+      "paths": [
+        "C:\\Users\\이영재\\.codex\\generated_images\\01a0b399-c837-71b2-b627-622210329107\\exec-7ca3529d-c888-486b-b046-00d3aa41a538.png"
+      ],
+      "prompt": "Create one new photorealistic aquarium foreground layer. Reference image is ONLY for olive/teal color and warm upper-left lighting, DO NOT include its background. Full 1536x1024 transparent PNG canvas. ONLY a very LOW sparse young Vallisneria rosette of 7-10 unequal ribbon leaves rooted OUTSIDE the bottom RIGHT corner, reaching no higher than y=73% and no further left than x=79%. Leaves bend sideways toward left along bottom, naturally asymmetric, NOT a tall curtain. Entire upper 70%, left 75% and middle swimming space EMPTY with alpha ZERO. No matching left plant, no rocks, no sand, no water, no mist, no colored glow or halo. Actual clean transparent alpha between and around the opaque textured leaves. Fine aquatic leaf veins, darker olive green, subtle wet highlights. Do NOT enlarge or center this small object; preserve large transparent canvas."
+    }
+  ],
+  "stonesCorrection": "Edit this transparent aquarium foreground stone layer. Keep one irregular cluster of dark wet river stones in the LOWER LEFT only (largest stone x=15%, all stone tops below y=80%). On the right keep only TWO tiny flat pebbles at x=91%, y=95%, no large stone cluster. Remove ALL tall grasses and ALL upright leaves from BOTH sides. A few tiny moss flecks on the left stones are fine. Bottom center completely transparent, no gravel bridge. Remove ALL green fog, halos and floor backdrop; alpha ZERO outside solid stones/pebbles. Preserve natural rock texture and upper-left golden highlights, full 1536x1024 canvas, large empty upper 80%. ASYMMETRIC composition, not balanced left/right. Actual transparent PNG cutout, no checkerboard.",
+  "rightPlantRevision": {
+    "mode": "generated new RGBA cutout",
+    "prompt": "Photorealistic freshwater aquarium plant foreground LAYER ONLY, 1536x1024 horizontal canvas with true RGBA transparent alpha. Small irregular grouping rooted at the extreme lower RIGHT edge: mature dark green broad-leaf Anubias (unequal sizes, one taller leaf reaching only to 62% of image height) mixed with sparse delicate reddish Rotala stems and a little water moss. The whole left 60% and top 55% are fully transparent. Organic silhouette, natural uneven spacing and negative gaps, distinct from tall ribbon-leaf Vallisneria on the left side of the aquarium. All plants rooted along bottom with visibly tapered stems so their leaves can be animated while roots stay fixed. No rocks, stones, driftwood, gravel, sand, water, fish, bubbles, fog, glow, halo, colored gradient or background. Outside actual solid plant pixels, alpha exactly ZERO including gaps between stems and leaves. No symmetry, no mirroring, no frame, no text."
+  },
+  "outputs": [
+    {
+      "file": "01-water.png",
+      "source": "C:\\Users\\이영재\\.codex\\generated_images\\01a0b399-c837-71b2-b627-622210329107\\exec-40c059d0-1ee2-41c0-8a09-4c883610dbcf.png"
+    },
+    {
+      "file": "02-rear-plants.png",
+      "source": "C:\\Users\\이영재\\.codex\\generated_images\\01a0b399-c837-71b2-b627-622210329107\\exec-769247ce-6f6e-43bc-8f65-5f1a35cafc10.png"
+    },
+    {
+      "file": "03-driftwood.png",
+      "source": "C:\\Users\\이영재\\.codex\\generated_images\\01a0b399-c837-71b2-b627-622210329107\\exec-c0273ff8-32fb-4c3f-a3a5-4fa0094edeaf.png"
+    },
+    {
+      "file": "04-stones.png",
+      "source": "C:\\Users\\이영재\\.codex\\generated_images\\01a0b399-c837-71b2-b627-622210329107\\exec-7aa98d03-77d9-4629-a942-0513dd7850d2.png"
+    },
+    {
+      "file": "05-left-plants.png",
+      "source": "C:\\Users\\이영재\\.codex\\generated_images\\01a0b399-c837-71b2-b627-622210329107\\exec-6323ecd0-bec6-42d4-bcfa-869b48895f67.png"
+    },
+    {
+      "file": "06-right-plants.png",
+      "source": "C:\\Users\\이영재\\.codex\\generated_images\\01a0b399-c837-71b2-b627-622210329107\\exec-c25c0e96-533b-4f4a-9747-d908f2708872.png"
+    }
+  ]
+}

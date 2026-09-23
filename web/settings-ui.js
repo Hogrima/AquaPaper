@@ -1,5 +1,6 @@
 import { clampPlecos } from './pleco.js';
 import { population, changeSpecies, SPECIES } from './population.js';
+import { coralPopulation } from './simulation3d.js';
 
 export function settingsControls(host, getSettings, apply, t) {
   const $ = id => document.getElementById(id);
@@ -38,8 +39,11 @@ export function settingsControls(host, getSettings, apply, t) {
   $('pleco-count').addEventListener('change', e => apply({ ...getSettings(), plecoCount: clampPlecos(e.target.valueAsNumber) }));
   function refresh() {
     const settings = getSettings(), counts = population(settings);
-    $('species-list').hidden = settings.fishMode !== 'tetra3d';
-    $('pleco-section').hidden = settings.fishMode !== 'tetra3d';
+    const coral=settings.background==='coral';
+    $('species-list').hidden = settings.fishMode !== 'tetra3d'||coral;
+    $('coral-species').hidden = !coral;
+    $('pleco-section').hidden = settings.fishMode !== 'tetra3d'||coral;
+    if(coral){const reef=coralPopulation(settings.count);$('clown-count').textContent=reef.clown;$('yellow-tang-count').textContent=reef.yellowTang;$('blue-tang-count').textContent=reef.blueTang;$('moorish-idol-count').textContent=reef.moorishIdol;$('dwarf-hawkfish-count').textContent=reef.dwarfHawkfish;}
     const plecos=clampPlecos(settings.plecoCount);
     $('pleco-toggle').textContent=t(plecos?'removeSpecies':'addSpecies');
     $('pleco-toggle').setAttribute('aria-label',`${t(plecos?'removeSpecies':'addSpecies')} · ${t('plecoName')}`);

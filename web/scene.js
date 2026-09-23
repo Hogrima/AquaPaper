@@ -1,13 +1,15 @@
 // A small camera orbit measured in tank-height units. One revolution takes 150 s.
 // The same projection is used by drawing and cursor hit testing.
 export const ORBIT_PERIOD = 150;
+// Keep every depth band moving, while giving the foreground a clearly larger
+// travel distance. The upper bound stays inside the background overscan margin.
 export const SCENE_LAYERS = Object.freeze([
-  { name: 'distant-water', parallax: .12 },
-  { name: 'rear-plants', parallax: .28 },
-  { name: 'rear-bank', parallax: .46 },
-  { name: 'driftwood', parallax: .70 },
-  { name: 'sand-and-rocks', parallax: 1.00 },
-  { name: 'near-plants', parallax: 1.38 },
+  { name: 'distant-water', parallax: .16 },
+  { name: 'rear-plants', parallax: .36 },
+  { name: 'rear-bank', parallax: .60 },
+  { name: 'driftwood', parallax: .88 },
+  { name: 'sand-and-rocks', parallax: 1.22 },
+  { name: 'near-plants', parallax: 1.60 },
 ]);
 export function cameraOrbit(time, enabled = true) {
   if (!enabled || !Number.isFinite(time)) return [0, 0];

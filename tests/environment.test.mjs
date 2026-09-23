@@ -4,7 +4,7 @@ import { cameraOrbit, ORBIT_PERIOD, SCENE_LAYERS, projectPoint, particleCounts }
 import { normalizeSettings, seededRandom } from '../web/simulation.js';
 import { TetraSimulation } from '../web/simulation3d.js';
 
-test('six depth planes orbit continuously, without a seam or resolution-dependent motion',()=>{
+test('six depth regions orbit continuously, without a seam or resolution-dependent motion',()=>{
   assert.equal(SCENE_LAYERS.length,6);
   for(let i=1;i<6;i++)assert.ok(SCENE_LAYERS[i].parallax>SCENE_LAYERS[i-1].parallax);
   for(let t=0;t<ORBIT_PERIOD*2;t+=.1){

@@ -148,7 +148,7 @@ internal sealed partial class AquariumApp : ApplicationContext
     }
     internal async Task OnReady(AquariumWindow window)
     {
-        window.Post(new { type = "init", wallpaper = window.IsWallpaper, settings, paused, monitorCount = window.Target?.Monitors.Count ?? 1, displayMode = display.Mode, plecoAllocation = PlecoAllocation(window) });
+        window.Post(new { type = "init", testing = Testing, wallpaper = window.IsWallpaper, settings, paused, monitorCount = window.Target?.Monitors.Count ?? 1, displayMode = display.Mode, plecoAllocation = PlecoAllocation(window) });
         if (window.IsWallpaper) { window.LastSuspended = null; return; }
         BroadcastDisplays(); BroadcastStartup(); if (startupHandled) return; startupHandled = true;
         if (Testing && !args.Contains("--startup-smoke-test")) await RunSmokeTest(window); else if (args.Contains("--wallpaper")) await ApplyWallpaper();

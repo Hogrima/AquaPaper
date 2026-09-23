@@ -1,5 +1,7 @@
 # AquaPaper v1.4.0 — 수조 깊이·수면·유영 개선 / Atmosphere and swimming
 
+**v1.5.0:** 배경 선택에 [강가의 숲](LAYERED-BACKGROUNDS.md)과 [열대 산호 수조](TROPICAL-REEF.md)가 추가되었습니다. 아래는 v1.4.0의 연속 깊이 지도 구현·검증 기록입니다. / v1.5.0 adds selectable [river forest](LAYERED-BACKGROUNDS.md) and [tropical reef](TROPICAL-REEF.md) scenes. The following documents the continuous relief implementation in v1.4.0.
+
 v1.3.0 이후 추가된 수조 깊이, 수면, 입자와 개별 유영 개선 기능의 사용 방법과 검증 결과입니다.
 
 This guide covers the depth, surface, particle and individual swimming improvements included in v1.4.0 after v1.3.0.
@@ -14,20 +16,22 @@ This guide covers the depth, surface, particle and individual swimming improveme
 
 전체 일시정지는 물고기뿐 아니라 시점·물결·입자도 멈춥니다. 시점 이동을 끄더라도 수면과 입자는 독립적으로 사용할 수 있습니다. 자동 시작에서도 저장한 선택을 복원합니다.
 
-## 6개 레이어
+## 6개 깊이 구간 · 중복 윤곽 수정
 
 | 깊이 순서 | 레이어 | 시차 배율 |
 | --- | --- | --- |
-| 1 | 먼 물속 배경 | 0.12 |
-| 2 | 뒤쪽 수초 | 0.28 |
-| 3 | 뒤쪽 강둑·식생 | 0.46 |
-| 4 | 중앙 고목 | 0.70 |
-| 5 | 모래와 바위 | 1.00 |
-| 6 | 가장 가까운 수초 | 1.38 |
+| 1 | 먼 물속 배경 | 0.16 |
+| 2 | 뒤쪽 수초 | 0.36 |
+| 3 | 뒤쪽 강둑·식생 | 0.60 |
+| 4 | 중앙 고목 | 0.88 |
+| 5 | 모래와 바위 | 1.22 |
+| 6 | 가장 가까운 수초 | 1.60 |
 
-기존 수족관 그림을 깊이별 마스크로 나누어 **서로 다른 알파 텍스처 6개를 GPU에서 생성**합니다. 각 텍스처를 독립된 위치로 투영한 후 합성합니다. 경계는 부드럽게 겹치고 가장자리에 여유를 두어 작은 시점 변화에서 빈 틈을 줄였습니다. 원본 구도를 유지하는 **2.5D 시차 효과**이며, 고목 뒤의 보이지 않는 공간까지 새 3D 모델로 복원한 것은 아닙니다.
+초기 구현은 원본 그림이 남은 배경 위에 같은 잎·바위를 포함하는 반투명 레이어를 움직여 이중 윤곽을 만들었습니다. v1.4.0은 **6개 구간을 연속적인 깊이 지도로 연결**하고, 각 화면 픽셀의 원본 좌표를 역으로 계산했습니다. 깊이 값만 부드럽게 연결하고 원본 색은 픽셀당 한 번만 읽으므로 같은 잎을 여러 위치에 겹쳐 그리지 않았습니다. 여섯 구간의 시차 배율은 **0.16 → 1.60**이며, 가까운 수초가 먼 물속보다 10배 더 이동합니다. 가장자리는 3%씩 여유를 두고, 수초도 하나의 작은 흐름으로 변형합니다.
 
-마스크 생성은 로드할 때 한 번만 수행합니다. 매 프레임에는 6개 텍스처를 한 번의 합성 패스로 처리하고, 빛 효과는 한 번만 계산합니다. 수면 셰이더는 위쪽 14% 영역만 그립니다. 세 화면 연결 모드에서도 물결의 공간 단위와 입자 밀도를 유지합니다.
+깊이 지도는 로드할 때 한 번 생성하는 **512×288 R8 텍스처(144 KiB)**입니다. 원본 구도를 유지하는 **2.5D 시차 효과**이며, 물체 뒤에 가려진 공간이나 잎 사이의 실제 입체 구조를 새로 복원하지는 않습니다.
+
+수면은 긴 물결과 여러 방향의 짧은 잔물결을 겹치고, 같은 물결 기울기를 **배경 굴절과 반사광 모두에 사용**합니다. 시선 각도에 따라 반사 강도가 달라지고 긴 조명 반사가 작은 반짝임으로 갈라집니다. 잎 사진을 수면에 다시 복사하던 방식은 제거했습니다. 수면은 상단 영역에서 부드럽게 사라지며 자연광·노을·달빛과 일시정지 설정을 따릅니다. 실시간 시각 효과이며 유체 역학 시뮬레이션은 아닙니다.
 
 물고기와 플레코의 커서 판정도 카메라 이동이 반영된 위치를 사용합니다. 배경만 흔들고 클릭/회피 위치가 어긋나는 방식이 아닙니다.
 
@@ -44,7 +48,9 @@ This guide covers the depth, surface, particle and individual swimming improveme
 
 Open **Settings → Aquarium** to control **Slow camera drift**, **Rippling water surface**, and **Bubbles and particles** independently. They default to on and persist with the other preferences. Pause freezes the entire scene.
 
-The view traces a small circle with radius 0.8% of viewport height over 150 seconds. Six individually masked GPU textures represent distant water, rear plants, the rear bank, driftwood, sand/rocks and near plants. Independent depth offsets create parallax. These are 2.5D planes derived from the existing artwork, not a reconstructed volumetric aquarium. Masks are cached once; all six planes are composited in a single runtime pass. The water shader covers only the upper strip and combines crossed ripples, distorted reflections and grazing-angle highlights.
+The view traces a small circle with radius 0.8% of viewport height over 150 seconds. Version 1.4 corrected ghosting caused by overlapping copies of leaves and rocks: six semantic regions form one continuous relief map. Inverse depth reprojection blends depth, then samples the original color only once per pixel. The parallax range is **0.16 to 1.60**, so near plants move ten times as much as distant water. A cached 512×288 R8 map costs 144 KiB. A 3% margin on each edge accommodates the entire orbit. This remains a 2.5D approximation; hidden geometry and true leaf-by-leaf occlusion are not reconstructed.
+
+Long swells and shorter capillary waves share their normals between background refraction and reflected overhead light. View-dependent reflectance and elongated, broken highlights make the upper water strip move coherently. The surface no longer reflects a second copy of the photographed plants. Lighting presets and pause apply to both effects. These are real-time visual approximations, not a fluid dynamics simulation.
 
 Bubbles rise from two planted areas and fade near the surface. Suspended particles drift independently with varying size, opacity and focus. Density scales with panoramic width. Fish rendering and cursor projection use the same camera offset, including attached plecos.
 
@@ -53,24 +59,34 @@ Bubbles rise from two planted areas and fade near the surface. Suspended particl
 ## 개발·검증 / Development and verification
 
 - `web/scene.js`: 시점 궤도, 공통 투영, 레이어 정의, 입자 수 / camera, projection, layer metadata, particle budgets
-- `web/environment.js`: 레이어 마스크·합성·수면·입자 셰이더 / masking, compositing, water and particle shaders
+- `web/depth-field.js`: 연속 깊이 지도, 보간·역투영 참조 / continuous relief, filtering and inverse projection reference
+- `web/environment.js`: 깊이 재투영·수면 굴절·반사·입자 셰이더 / depth reprojection, water refraction, reflection and particles
 - `web/renderer.js`: GPU 캐시와 렌더 순서 / texture caching and render passes
 - `web/simulation3d.js`: 개체별 행동과 추진·활주 / individual behavior and gait
 - `tests/environment.test.mjs`: 궤도 연속성, 커서 정합성, 입자 예산, 저장 호환성, 활주 거리, 행동 다양성 / orbit, picking, budgets, persistence, glide travel and behavioral diversity
+- `tests/depth-field.test.mjs`: 양자화된 깊이 지도의 전 궤도 가장자리 여유·뒤집힘·프레임 연속성 / full-orbit bounds, folds and continuity using the quantized map
 
 ```powershell
 node --test tests/*.test.mjs
 dotnet build AquaPaper.csproj -c Release -r win-x64 --no-restore -p:RuntimeFrameworkVersion=10.0.12
 # Close any running AquaPaper instance before the isolated native check.
-.\bin\Release\net10.0-windows\win-x64\AquaPaper.exe --multi-smoke-test --mixed-species --pleco-test --environment-test --output=C:\Codex\AquaPaper\artifacts\environment-check
-node scripts/verify-smoke.mjs artifacts/environment-check/smoke-test.json
+.\bin\Release\net10.0-windows\win-x64\AquaPaper.exe --smoke-test --mixed-species --pleco-test --environment-test --depth-test --output=C:\Codex\AquaPaper\artifacts\depth-water-final
+node scripts/verify-smoke.mjs artifacts/depth-water-final/smoke-test.json
 ```
 
-네이티브 검사는 효과 켜기/끄기, 3D/기존 모드, 3개 모니터의 단일·연결·개별 배치, 일시정지·커서 회피·바탕화면 적용·해제를 검증하고 종료합니다. 실제 사용자 설정 파일과 자동 시작 등록은 변경하지 않습니다.
+위 네이티브 명령은 **단일 화면**에서 효과 켜기/끄기, 3D/기존 모드, 일시정지·커서 회피·바탕화면 적용·해제를 검증하고 종료합니다. `--depth-test`는 물고기와 UI를 숨긴 상태로 궤도의 0 / 37.5 / 75 / 112.5초와 물결 비교용 75.5 / 76초를 캡처합니다. 테스트 전용 호스트에서만 사용할 수 있으며 실제 사용자 설정 파일과 자동 시작 등록은 변경하지 않습니다. 이번 수정에서는 멀티 모니터 실행 검증을 하지 않았습니다.
 
-The native check temporarily attaches to the desktop and verifies effect toggles, classic/3D modes, single/spanned/separate layouts, pause, cursor escape and cleanup. It exits without changing user preference files or startup registration.
+The native command checks one screen, effect toggles, classic/3D modes, pause, cursor escape and desktop attach/cleanup. `--depth-test` captures four orbit quadrants plus two adjacent water-animation samples through a test-only host message. It exits without changing user preference files or startup registration. Multi-monitor execution was not re-tested for this correction.
 
-## 검증 결과 / Results · 2026-09-20
+## 이번 수정 검증 / Correction verification · 2026-09-20
+
+- JavaScript **46개 통과**, Release 빌드 경고·오류 0 / **46 tests passed**, zero-warning Release build.
+- 단일 화면 미리보기 **60fps**, 바탕화면 **48fps**, JS/WebGL 오류 없음. 효과 토글, 모드 전환, 커서 회피, 일시정지·재개 및 적용·해제 통과 / Single-screen preview **60fps**, wallpaper **48fps**, no JS/WebGL errors; toggles, mode switches, cursor escape, pause/resume and desktop cleanup passed.
+- 보고서 / Report: `artifacts/depth-water-final/smoke-test.json`. 궤도·수면 캡처 / Orbit and water captures: `depth-*.png` in the same directory.
+
+## 수정 전 기록 / Historical results before this correction · 2026-09-20
+
+아래는 이전 레이어 방식의 기록이며 현재 수정의 멀티 모니터 검증 결과가 아닙니다. / The following records concern the previous layered renderer, not multi-monitor validation of this correction.
 
 - JavaScript **43개 검사 통과**, Release 빌드 경고·오류 0 / **43 JavaScript tests passed**, zero-warning Release build.
 - 실제 WebView2에서 6개 캐시 텍스처·6개 깊이 레이어, 효과 끄기/켜기, 카메라를 반영한 커서 회피, 일시정지·재개, 3D/기존 모드와 모든 모니터 배치 검증 통과. JS/WebGL 오류 없음 / Native tests verified all six cached planes, toggles, projected cursor response, pause/resume, both fish modes and all display layouts with no JS/WebGL errors.

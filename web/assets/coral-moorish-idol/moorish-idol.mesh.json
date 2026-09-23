@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "generator": "Blender 5.2.2 LTS",
+  "stride": 11,
+  "length": 1.9700000000000002,
+  "species": "Zanclus cornutus",
+  "originalAsset": true,
+  "coordinates": "+X head, +Y dorsal, +Z lateral",
+  "opaqueVertices": 31728,
+  "finVertices": 9882,
+  "binary": "moorish-idol.mesh.bin",
+  "lod": {
+    "opaqueVertices": 10848,
+    "finVertices": 6012,
+    "binary": "moorish-idol.lod.bin"
+  }
+}

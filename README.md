@@ -1,5 +1,7 @@
 # AquaPaper
 
+**v1.5.0:** 좌우 구성이 다른 강가의 숲과 10개 이미지 레이어로 만든 열대 산호 수조를 선택할 수 있습니다. 산호 수조에는 Blender 3D 물고기 5종이 함께합니다. / Adds an asymmetric river forest and a tropical reef built from ten image planes, with five original Blender 3D fish species. [강가의 숲 / River forest](docs/LAYERED-BACKGROUNDS.md) · [산호 수조 / Tropical reef](docs/TROPICAL-REEF.md)
+
 **v1.4.0:** 6개 깊이 레이어, 수면·기포·부유물 효과와 개별 유영 개선을 포함합니다. / Includes six depth layers, water, bubbles, suspended particles and individual swimming improvements. [릴리즈 안내 / release guide](docs/ATMOSPHERE.md)
 
 **v1.3.0:** Windows 자동 시작, 탭형 설정, Blender 러미노즈·플레코 추가·제거 기능을 포함합니다. [릴리즈 안내 / release guide](docs/NEXT-VERSION.md) · [플레코 피부·행동 / Pleco skin and behavior](docs/PLECO.md).

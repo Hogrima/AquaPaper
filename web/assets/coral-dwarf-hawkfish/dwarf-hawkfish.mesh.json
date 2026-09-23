@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "generator": "Blender 5.2.2 LTS",
+  "stride": 11,
+  "length": 1.79,
+  "species": "Cirrhitichthys falco",
+  "originalAsset": true,
+  "coordinates": "+X head, +Y dorsal, +Z lateral",
+  "opaqueVertices": 31608,
+  "finVertices": 9762,
+  "binary": "dwarf-hawkfish.mesh.bin",
+  "lod": {
+    "opaqueVertices": 10728,
+    "finVertices": 5532,
+    "binary": "dwarf-hawkfish.lod.bin"
+  }
+}
